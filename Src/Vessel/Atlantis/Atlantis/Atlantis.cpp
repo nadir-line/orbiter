@@ -492,7 +492,7 @@ void Atlantis::CreateAirfoils ()
 	CreateVariableDragElement (&spdb_proc, 5, _V(0, 7.5, -14)); // speedbrake drag
 	CreateVariableDragElement (&gear_proc, 2, _V(0,-3,0));      // landing gear drag
 	CreateVariableDragElement (&rdoor_drag, 7, _V(2.9,0,10));   // right cargo door drag
-	CreateVariableDragElement (&ldoor_drag, 7, _V(-2.9,0,10));  // right cargo door drag
+	CreateVariableDragElement (&ldoor_drag, 7, _V(-2.9,0,10));  // left cargo door drag
 }
 
 // --------------------------------------------------------------
