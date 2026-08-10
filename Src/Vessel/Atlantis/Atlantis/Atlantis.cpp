@@ -22,12 +22,15 @@
 #include "DrawAPI.h"
 #include <stdio.h>
 #include <fstream>
+#include <algorithm> // Required for std::clamp
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "IconsFontAwesome6.h"
 
 using std::min;
+using std::max;
+using std::clamp;
 using std::max;
 
 #ifdef _DEBUG
@@ -1634,9 +1637,12 @@ void Atlantis::clbkPostCreation ()
 		}
 	}
 	EnableSSME (status < 3);
-	EnableRCS (status == 3 ? RCS_ROT : RCS_NONE);
+	EnableRCS (status >= 3 ? RCS_ROT : RCS_NONE);
 	EnableOMS (status == 3);
 	SetADCtrlMode (status < 4 ? 0 : 7);
+	if (status >= 4) {
+		SetControlSurfaceLevel (AIRCTRL_ELEVATORTRIM, 0.5);
+	}
 
 	UpdateMesh ();
 }
@@ -1729,16 +1735,50 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 			do_eva = false;
 		};
 
-		if (GetDynPressure() > 1000.0) {
-			// 1000Pa ~ 20psf, see Mission Profile, https://science.ksc.nasa.gov/shuttle/technology/sts-newsref/mission_profile.html
-			EnableRCS(RCS_NONE);
+        // When altitude is below Entry Interface altitude, 121.92 km/400000 ft
+        // Enable RCS and control surfaces and set trim to 0.5
+		if (GetAltitude(ALTMODE_GROUND) < 121920) {
+			EnableRCS(RCS_ROT);
 			SetADCtrlMode(7);
-			// note: in reality, control doesn't switch from RCS to control surfaces completely in one go,
-			// but at different stages for different components
+            SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, 0.5);
 			status = 4;
 		}
 		break;
 	case 4: // reentry
+        // vars
+        double mach = GetMachNumber();
+        double alpha = GetAOA(); // angle of attack in radians
+        double beta = GetSlipAngle(); // slip angle in radians
+        double yaw_rate_tgt = -0.2 * beta; // target yaw rate is proportional to slip angle
+        VECTOR3 avel;
+        GetAngularVel(avel);
+        double pitch_rate_curr = avel.x;
+        double pitch_rate_error = 0 - pitch_rate_curr;
+        double yaw_rate_curr = -avel.y;
+        double yaw_rate_error = yaw_rate_tgt - yaw_rate_curr;
+        double yaw_p_term = 5.0; // proportional gain for yaw control
+
+        sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
+
+        // Set body flap to trim position and elevons to neutral trim, if Mach number is above 5
+        if (GetMachNumber() > 5.0) {
+            SetControlSurfaceLevel(AIRCTRL_FLAP, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
+            SetControlSurfaceLevel(AIRCTRL_ELEVATOR, 0.0);
+            SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, clamp(+pitch_rate_error * 15, 0.0, 1.0));
+            SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-pitch_rate_error * 15, 0.0, 1.0));
+        }
+        // Otherwise, set flaps to neutral position and trim elevons to trim position
+        else {
+            SetControlSurfaceLevel(AIRCTRL_FLAP, 0.0);
+            SetControlSurfaceLevel(AIRCTRL_ELEVATOR, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
+        }
+        // Set rudder and thrusters to counter slip angle, if Mach number is above 1
+        if (GetMachNumber() > 1.0) {
+            SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT, clamp(-yaw_rate_error * yaw_p_term, 0.0, 1.0));
+            SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, clamp(+yaw_rate_error * yaw_p_term, 0.0, 1.0));
+
+
+        }
 		break;
 	}
 
