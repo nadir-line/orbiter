@@ -481,7 +481,7 @@ void Atlantis::CreateRCS()
 // --------------------------------------------------------------
 void Atlantis::CreateAirfoils ()
 {
-	CreateAirfoil (LIFT_VERTICAL,   _V(0,0,-0.5), VLiftCoeff, 20, 270, 2.266);
+	CreateAirfoil (LIFT_VERTICAL,   _V(0,0,-0.2), VLiftCoeff, 20, 270, 2.266);
 	CreateAirfoil (LIFT_HORIZONTAL, _V(0,0,-4), HLiftCoeff, 20,  50, 1.5);
 
 	CreateControlSurface (AIRCTRL_ELEVATOR, 5.0, 1.5, _V( 0, 0,  -15), AIRCTRL_AXIS_XPOS, anim_elev);
