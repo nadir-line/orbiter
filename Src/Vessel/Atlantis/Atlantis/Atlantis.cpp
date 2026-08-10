@@ -488,6 +488,7 @@ void Atlantis::CreateAirfoils ()
 	CreateControlSurface (AIRCTRL_RUDDER,   2.0, 1.5, _V( 0, 3,  -16), AIRCTRL_AXIS_YPOS, anim_rudder);
 	CreateControlSurface (AIRCTRL_AILERON,  3.0, 1.5, _V( 7,-0.5,-15), AIRCTRL_AXIS_XPOS, anim_raileron);
 	CreateControlSurface (AIRCTRL_AILERON,  3.0, 1.5, _V(-7,-0.5,-15), AIRCTRL_AXIS_XNEG, anim_laileron);
+	CreateControlSurface (AIRCTRL_FLAP,    20.0, 1.5, _V( 0, 0,  -16), AIRCTRL_AXIS_XPOS);
 
 	CreateVariableDragElement (&spdb_proc, 5, _V(0, 7.5, -14)); // speedbrake drag
 	CreateVariableDragElement (&gear_proc, 2, _V(0,-3,0));      // landing gear drag
@@ -519,9 +520,16 @@ void Atlantis::VLiftCoeff (double aoa, double M, double Re, double *cl, double *
 	aoa += PI;
 	int idx = max (0, min (23, (int)(aoa*istep)));
 	double d = aoa*istep - idx;
-	*cl = CL[idx] + (CL[idx+1]-CL[idx])*d;
-	*cm = CM[idx] + (CM[idx+1]-CM[idx])*d;
-	*cd = 0.055 + oapiGetInducedDrag (*cl, 2.266, 0.6);
+	double cl_low = CLMachLow[idx] + (CLMachLow[idx+1]-CLMachLow[idx])*d;
+	double cm_low = CMMachLow[idx] + (CMMachLow[idx+1]-CMMachLow[idx])*d;
+	double cl_high = CLMachHigh[idx] + (CLMachHigh[idx+1]-CLMachHigh[idx])*d;
+	double cm_high = CMMachHigh[idx] + (CMMachHigh[idx+1]-CMMachHigh[idx])*d;
+    double cd_prof_low = 0.055 + 0.01 * pow(sin(aoa), 2);  // profile drag coefficient at low Mach
+    double cd_prof_high = 0.15 + 1.2 * pow(sin(aoa), 2); // profile drag coefficient at high Mach
+
+	*cl = cl_low + (cl_high-cl_low)*mach_blend;
+	*cm = cm_low + (cm_high-cm_low)*mach_blend;
+	*cd = cd_prof_low + (cd_prof_high-cd_prof_low)*mach_blend + oapiGetInducedDrag (*cl, 2.266, 0.6);
 }
 
 // --------------------------------------------------------------
