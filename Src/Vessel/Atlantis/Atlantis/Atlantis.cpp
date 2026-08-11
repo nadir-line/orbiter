@@ -1486,6 +1486,10 @@ void Atlantis::clbkLoadStateEx (FILEHANDLE scn, void *vs)
 			sscanf (line+16, "%lf%lf%lf", &cargo_static_ofs.x, &cargo_static_ofs.y, &cargo_static_ofs.z);
 		} else if (!_strnicmp (line, "ARM_STATUS", 10)) {
 			sscanf (line+10, "%lf%lf%lf%lf%lf%lf", &arm_sy, &arm_sp, &arm_ep, &arm_wp, &arm_wy, &arm_wr);
+		} else if (!_strnicmp (line, "TRIM", 4)) {
+			double trim;
+			sscanf (line+4, "%lf", &trim);
+			SetControlSurfaceLevel (AIRCTRL_ELEVATORTRIM, trim);
         } else {
 			if      (plop->ParseScenarioLine (line)) continue;  // offer the line to bay door operations
 			else if (ascap->ParseScenarioLine (line)) continue; // offer to ascent autopilot
@@ -1560,6 +1564,7 @@ void Atlantis::clbkSaveState (FILEHANDLE scn)
 
 	sprintf (cbuf, "%0.4f %0.4f %0.4f %0.4f %0.4f %0.4f", arm_sy, arm_sp, arm_ep, arm_wp, arm_wy, arm_wr);
 	oapiWriteScenario_string (scn, (char*)"ARM_STATUS", cbuf);
+	oapiWriteScenario_float (scn, (char*)"TRIM", GetControlSurfaceLevel (AIRCTRL_ELEVATORTRIM));
 
 	oapiWriteScenario_float (scn, (char*)"SAT_OFS_X", ofs_sts_sat.x);
 	oapiWriteScenario_float (scn, (char*)"SAT_OFS_Y", ofs_sts_sat.y);
@@ -1640,9 +1645,6 @@ void Atlantis::clbkPostCreation ()
 	EnableRCS (status >= 3 ? RCS_ROT : RCS_NONE);
 	EnableOMS (status == 3);
 	SetADCtrlMode (status < 4 ? 0 : 7);
-	if (status >= 4) {
-		SetControlSurfaceLevel (AIRCTRL_ELEVATORTRIM, 0.5);
-	}
 
 	UpdateMesh ();
 }
