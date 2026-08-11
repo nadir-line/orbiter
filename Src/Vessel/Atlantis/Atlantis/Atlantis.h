@@ -414,6 +414,7 @@ private:
 	UINT anim_raileron;						   // handle for right aileron animation
 	UINT anim_rudder;						   // handle for rudder animation
 	UINT anim_spdb;                            // handle for speed brake animation
+	UINT anim_flap;                            // handle for body-flap animation
 	UINT anim_ssme;                            // handle for SSME pitch gimbal animation
 	UINT mesh_orbiter;                         // index for orbiter mesh
 	UINT mesh_cockpit;                         // index for cockpit mesh for external view

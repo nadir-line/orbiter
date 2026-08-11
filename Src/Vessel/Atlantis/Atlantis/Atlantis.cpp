@@ -491,7 +491,7 @@ void Atlantis::CreateAirfoils ()
 	CreateControlSurface (AIRCTRL_RUDDER,   2.0, 1.5, _V( 0, 3,  -16), AIRCTRL_AXIS_YPOS, anim_rudder);
 	CreateControlSurface (AIRCTRL_AILERON,  3.0, 1.5, _V( 7,-0.5,-15), AIRCTRL_AXIS_XPOS, anim_raileron);
 	CreateControlSurface (AIRCTRL_AILERON,  3.0, 1.5, _V(-7,-0.5,-15), AIRCTRL_AXIS_XNEG, anim_laileron);
-	CreateControlSurface (AIRCTRL_FLAP,    20.0, 1.5, _V( 0, 0,  -16), AIRCTRL_AXIS_XPOS);
+	CreateControlSurface (AIRCTRL_FLAP,    20.0, 1.5, _V( 0, 0,  -16), AIRCTRL_AXIS_XPOS, anim_flap);
 
 	CreateVariableDragElement (&spdb_proc, 5, _V(0, 7.5, -14)); // speedbrake drag
 	CreateVariableDragElement (&gear_proc, 2, _V(0,-3,0));      // landing gear drag
@@ -822,6 +822,15 @@ void Atlantis::DefineAnimations (void)
 	static UINT SSMET_Grp = GRP_SSMET;
 	ssme_anim[2] = new MGROUP_ROTATE (midx, &SSMET_Grp, 1, _V(0.0,  2.7, -12.5), _V(-1,0,0), max_gimbal);
 	AddAnimationComponent (anim_ssme, 0, 1, ssme_anim[2]);
+
+	// ***** 10. Body flap animation *****
+	// The body flap is stored as mesh group 1 in Atlantis.msh.
+	// Place the pivot on the flap's forward-edge hinge line from the mesh data.
+	static UINT BodyFlapGrp[1] = {1};
+	static MGROUP_ROTATE BodyFlap (midx, BodyFlapGrp, 1,
+		_V(2.9231,-2.02882,-12.3775), _V(1,0,0), (float)(20.0*RAD));
+	anim_flap = CreateAnimation (0.5);
+	AddAnimationComponent (anim_flap, 0, 1, &BodyFlap);
 
 	// ======================================================
 	// VC animation definitions
