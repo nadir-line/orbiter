@@ -1769,7 +1769,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
         double yaw_rate_error = yaw_rate_tgt - yaw_rate_curr;
         double yaw_p_term = 5.0; // proportional gain for yaw control
 
-        sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
+        // sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
 
         // Set body flap to trim position and elevons to neutral trim, if Mach number is above 5
         if (GetMachNumber() > 5.0) {
