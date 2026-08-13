@@ -52,6 +52,33 @@ HELPCONTEXT g_hc = {
 	(char*)"html/vessels/Atlantis.chm::/Atlantis.hhk"
 };
 
+// Reentry control parameters
+
+// AOA control
+double aoa_cmd;
+double aoa_curr;
+double aoa_tgt;
+double aoa_error;
+
+double aoa_rate_curr;
+double aoa_rate_tgt;
+double aoa_rate_error;
+
+// Yaw control
+double yaw_rate_curr;
+double yaw_rate_tgt;
+double yaw_rate_error;
+
+// Roll control
+double roll_cmd;
+double roll_curr;
+double roll_tgt;
+double roll_error;
+
+double roll_rate_curr;
+double roll_rate_tgt;
+double roll_rate_error;
+
 
 // ==============================================================
 // Local prototypes
@@ -1685,15 +1712,6 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
     double beta = GetSlipAngle(); // slip angle in radians
     VECTOR3 avel;
     GetAngularVel(avel);
-    double pitch_curr = GetPitch();
-    double pitch_tgt = 40; // preset pitch is 40 for reentry
-    double pitch_rate_curr = avel.x;
-    double pitch_rate_tgt = 0; // preset pitch rate is 0 for reentry
-    double pitch_rate_error = pitch_rate_tgt - pitch_rate_curr;
-    double yaw_rate_curr = -avel.y;
-    double yaw_rate_tgt = -0.2 * beta; // target yaw rate is proportional to slip angle
-    double yaw_rate_error = yaw_rate_tgt - yaw_rate_curr;
-    double yaw_p_term = 5.0; // proportional gain for yaw control
 
 	engine_light_level = GetThrusterGroupLevel (THGROUP_MAIN);
 
@@ -1768,17 +1786,41 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 			EnableRCS(RCS_ROT);
 			SetADCtrlMode(7);
             SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, 0.5);
+            aoa_curr = GetAOA();
+            aoa_tgt = aoa_curr;
 			status = 4;
 		}
 		break;
 	case 4: // reentry
-        // sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
-
         // Set body flap to trim position and elevons to neutral trim, if Mach number is above 5
         // Set pitch RCS to counter pitch rate error as well
         if (GetMachNumber() > 5.0) {
-            SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+pitch_rate_error * 15, 0.0, 1.0));
-            SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-pitch_rate_error * 15, 0.0, 1.0));
+            aoa_cmd = GetManualControlLevel(THGROUP_ATT_PITCHUP)-GetManualControlLevel(THGROUP_ATT_PITCHDOWN); // pitch input commmand
+            aoa_curr = GetAOA();
+            aoa_tgt += aoa_cmd * 0.1 * simdt; // target AOA is incremented by pitch command input
+            aoa_tgt = clamp(aoa_tgt, PI/12, PI/4); // limit target AOA to between 15 and 45 degrees
+            aoa_error = aoa_tgt - aoa_curr;
+
+            aoa_rate_curr = avel.x;
+            aoa_rate_tgt = aoa_error * 0.1; // target AOA rate is proportional to AOA error
+            aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
+
+            yaw_rate_curr = -avel.y;
+            yaw_rate_tgt = -0.2 * beta; // target yaw rate is proportional to slip angle
+            yaw_rate_error = yaw_rate_tgt - yaw_rate_curr;
+
+            roll_cmd = GetManualControlLevel(THGROUP_ATT_BANKRIGHT)-GetManualControlLevel(THGROUP_ATT_BANKLEFT); // roll input command
+            roll_curr = GetBank();
+            roll_tgt += roll_cmd * 0.1 * simdt; // target roll is incremented by roll command input
+            roll_tgt = clamp(roll_tgt, -PI/2, PI/2); // limit target roll to between -90 and 90 degrees
+            roll_error = roll_tgt - roll_curr;
+
+            roll_rate_curr = avel.z;
+            roll_rate_tgt = roll_error * 0.1; // target roll rate is proportional to roll error
+            roll_rate_error = roll_rate_tgt - roll_rate_curr;
+
+            SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 15, 0.0, 1.0));
+            SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 15, 0.0, 1.0));
             SetControlSurfaceLevel(AIRCTRL_FLAP, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
             SetControlSurfaceLevel(AIRCTRL_ELEVATOR, 0.0);
 
@@ -1792,13 +1834,17 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
         }
         // Set rudder and thrusters to counter slip angle, if Mach number is above 1
         if (GetMachNumber() > 1.0) {
-            SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT,  clamp(-yaw_rate_error * yaw_p_term, 0.0, 1.0));
-            SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, clamp(+yaw_rate_error * yaw_p_term, 0.0, 1.0));
+            SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT,  clamp(-yaw_rate_error * 5.0, 0.0, 1.0));
+            SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, clamp(+yaw_rate_error * 5.0, 0.0, 1.0));
         }
         else {
             SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT, 0.0);
             SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, 0.0);
         }
+
+        // sprintf(oapiDebugString(), "AOA Target: %+0.3f", aoa_tgt * 57.296);
+        // sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
+        sprintf(oapiDebugString(), "Roll Rate: %+0.3f", roll_rate_curr * 57.296);
 		break;
 	}
 
