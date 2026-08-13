@@ -1679,6 +1679,22 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 	//double met = (status == 0 ? 0.0 : simt-t0);
 	double met = ascap->GetMET (simt);
 
+    // reentry vars
+    double mach = GetMachNumber();
+    double alpha = GetAOA(); // angle of attack in radians
+    double beta = GetSlipAngle(); // slip angle in radians
+    VECTOR3 avel;
+    GetAngularVel(avel);
+    double pitch_curr = GetPitch();
+    double pitch_tgt = 40; // preset pitch is 40 for reentry
+    double pitch_rate_curr = avel.x;
+    double pitch_rate_tgt = 0; // preset pitch rate is 0 for reentry
+    double pitch_rate_error = pitch_rate_tgt - pitch_rate_curr;
+    double yaw_rate_curr = -avel.y;
+    double yaw_rate_tgt = -0.2 * beta; // target yaw rate is proportional to slip angle
+    double yaw_rate_error = yaw_rate_tgt - yaw_rate_curr;
+    double yaw_p_term = 5.0; // proportional gain for yaw control
+
 	engine_light_level = GetThrusterGroupLevel (THGROUP_MAIN);
 
 	VECTOR3 tgt_rate = _V(0,0,0); // target rotation rates - used for setting engine gimbals
@@ -1756,20 +1772,6 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 		}
 		break;
 	case 4: // reentry
-        // vars
-        double mach = GetMachNumber();
-        double alpha = GetAOA(); // angle of attack in radians
-        double beta = GetSlipAngle(); // slip angle in radians
-        VECTOR3 avel;
-        GetAngularVel(avel);
-        double pitch_rate_curr = avel.x;
-        double pitch_rate_tgt = 0;
-        double pitch_rate_error = pitch_rate_tgt - pitch_rate_curr;
-        double yaw_rate_curr = -avel.y;
-        double yaw_rate_tgt = -0.2 * beta; // target yaw rate is proportional to slip angle
-        double yaw_rate_error = yaw_rate_tgt - yaw_rate_curr;
-        double yaw_p_term = 5.0; // proportional gain for yaw control
-
         // sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
 
         // Set body flap to trim position and elevons to neutral trim, if Mach number is above 5
