@@ -1138,10 +1138,10 @@ void Atlantis::AutoGimbal (const VECTOR3 &tgt_rate)
 	static const double b_pitch = 1e0;
 	static const double a_yaw = 1e-1;
 	static const double b_yaw = 3e-2;
-	static const double a_roll_srb = 1e-1;
-	static const double b_roll_srb = 3e-2;
-	static const double a_roll_ssme = 8e-2;
-	static const double b_roll_ssme = 5e-2;
+	static const double a_BANK_srb = 1e-1;
+	static const double b_BANK_srb = 3e-2;
+	static const double a_BANK_ssme = 8e-2;
+	static const double b_BANK_ssme = 5e-2;
 
 	VECTOR3 avel, aacc;
 	GetAngularVel(avel);
@@ -1155,8 +1155,8 @@ void Atlantis::AutoGimbal (const VECTOR3 &tgt_rate)
 
 	bool srb_gimbal = status < 2 && pET;
 	double roll_gimbal_max = (srb_gimbal ? roll_gimbal_max_srb : roll_gimbal_max_ssme);
-	double a_roll = (srb_gimbal ? a_roll_srb : a_roll_ssme);
-	double b_roll = (srb_gimbal ? b_roll_srb : b_roll_ssme);
+	double a_BANK = (srb_gimbal ? a_BANK_srb : a_BANK_ssme);
+	double b_BANK = (srb_gimbal ? b_BANK_srb : b_BANK_ssme);
 
 	// Pitch gimbal settings
 	maxdg = dt*0.3; // max gimbal speed [rad/s]
@@ -1169,7 +1169,7 @@ void Atlantis::AutoGimbal (const VECTOR3 &tgt_rate)
 	gimbal_pos.y = min (yaw_gimbal_max, max(-yaw_gimbal_max, gimbal_pos.y+dgimbal));
 
 	// Roll gimbal settings
-	dgimbal = a_roll*(avel.z-tgt_rate.z) + b_roll*aacc.z;
+	dgimbal = a_BANK*(avel.z-tgt_rate.z) + b_BANK*aacc.z;
 	gimbal_pos.z = min (roll_gimbal_max, max(-roll_gimbal_max, gimbal_pos.z+dgimbal));
 
 	// Set SRB gimbals
@@ -1193,8 +1193,8 @@ void Atlantis::AutoRCS (const VECTOR3 &tgt_rate)
 	const double b_pitch = 2;
 	const double a_yaw = 2e-1;
 	const double b_yaw = 6e-2;
-	const double a_roll = 2e-1;
-	const double b_roll = 6e-2;
+	const double a_BANK = 2e-1;
+	const double b_BANK = 6e-2;
 
 	VECTOR3 avel, aacc;
 	GetAngularVel(avel);
@@ -1223,7 +1223,7 @@ void Atlantis::AutoRCS (const VECTOR3 &tgt_rate)
 	}
 
 	// Roll RCS settings
-	drcs = a_roll*(tgt_rate.z-avel.z) - b_roll*aacc.z;
+	drcs = a_BANK*(tgt_rate.z-avel.z) - b_BANK*aacc.z;
 	if (drcs > 0.0) {
 		SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, min(drcs, 1.0));
 		SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0);
@@ -1730,9 +1730,9 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 		if (!man_yaw) man_yaw = -GetManualControlLevel (THGROUP_ATT_YAWRIGHT, MANCTRL_ROTMODE, MANCTRL_ANYDEVICE);
 		if (man_yaw)   tgt_rate.y = man_yaw*0.07;
 
-		double man_roll  =-GetManualControlLevel (THGROUP_ATT_BANKLEFT, MANCTRL_ROTMODE, MANCTRL_ANYDEVICE);
-		if (!man_roll) man_roll = GetManualControlLevel (THGROUP_ATT_BANKRIGHT, MANCTRL_ROTMODE, MANCTRL_ANYDEVICE);
-		if (man_roll)  tgt_rate.z = man_roll*0.07;
+		double man_BANK  =-GetManualControlLevel (THGROUP_ATT_BANKLEFT, MANCTRL_ROTMODE, MANCTRL_ANYDEVICE);
+		if (!man_BANK) man_BANK = GetManualControlLevel (THGROUP_ATT_BANKRIGHT, MANCTRL_ROTMODE, MANCTRL_ANYDEVICE);
+		if (man_BANK)  tgt_rate.z = man_BANK*0.07;
 	}
 
 	switch (status) {
@@ -1819,16 +1819,36 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
             roll_rate_tgt = roll_error * 0.1; // target roll rate is proportional to roll error
             roll_rate_error = roll_rate_tgt - roll_rate_curr;
 
-            SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 15, 0.0, 1.0));
-            SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 15, 0.0, 1.0));
+            if (abs(aoa_cmd) < 0.01) { // if no pitch input command, set RCS to stabilise pitch rate to target current AOA
+                SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 15, 0.0, 1.0));
+                SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 15, 0.0, 1.0));
+            }
+            else { // if pitch input command is given, set target AOA to current AOA and set RCS to zero
+                aoa_tgt = aoa_curr;
+                SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   0.0);
+                SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
+            }
+
+            if (abs(roll_cmd) < 0.01) { // if no roll input command, set RCS to stabilise roll rate to target current roll
+                SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, clamp(+roll_rate_error * 15, 0.0, 1.0));
+                SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  clamp(-roll_rate_error * 15, 0.0, 1.0));
+            }
+            else { // if roll input command is given, set target roll to current roll and set RCS to zero
+                roll_tgt = roll_curr;
+                SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);
+                SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  0.0);
+            }
+
             SetControlSurfaceLevel(AIRCTRL_FLAP, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
             SetControlSurfaceLevel(AIRCTRL_ELEVATOR, 0.0);
 
         }
-        // Otherwise, set pitch RCS to zero, flaps to neutral position and trim elevons to trim position
+        // Otherwise, set RCS to zero, flaps to neutral position and trim elevons to trim position
         else {
             SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
             SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
+            SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);
+            SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0.0);
             SetControlSurfaceLevel(AIRCTRL_FLAP, 0.0);
             SetControlSurfaceLevel(AIRCTRL_ELEVATOR, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
         }
