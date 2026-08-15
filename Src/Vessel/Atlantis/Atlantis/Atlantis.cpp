@@ -1144,10 +1144,10 @@ void Atlantis::AutoGimbal (const VECTOR3 &tgt_rate)
 	static const double b_pitch = 1e0;
 	static const double a_yaw = 1e-1;
 	static const double b_yaw = 3e-2;
-	static const double a_BANK_srb = 1e-1;
-	static const double b_BANK_srb = 3e-2;
-	static const double a_BANK_ssme = 8e-2;
-	static const double b_BANK_ssme = 5e-2;
+	static const double a_bank_srb = 1e-1;
+	static const double b_bank_srb = 3e-2;
+	static const double a_bank_ssme = 8e-2;
+	static const double b_bank_ssme = 5e-2;
 
 	VECTOR3 avel, aacc;
 	GetAngularVel(avel);
@@ -1161,8 +1161,8 @@ void Atlantis::AutoGimbal (const VECTOR3 &tgt_rate)
 
 	bool srb_gimbal = status < 2 && pET;
 	double roll_gimbal_max = (srb_gimbal ? roll_gimbal_max_srb : roll_gimbal_max_ssme);
-	double a_BANK = (srb_gimbal ? a_BANK_srb : a_BANK_ssme);
-	double b_BANK = (srb_gimbal ? b_BANK_srb : b_BANK_ssme);
+	double a_bank = (srb_gimbal ? a_bank_srb : a_bank_ssme);
+	double b_bank = (srb_gimbal ? b_bank_srb : b_bank_ssme);
 
 	// Pitch gimbal settings
 	maxdg = dt*0.3; // max gimbal speed [rad/s]
@@ -1175,7 +1175,7 @@ void Atlantis::AutoGimbal (const VECTOR3 &tgt_rate)
 	gimbal_pos.y = min (yaw_gimbal_max, max(-yaw_gimbal_max, gimbal_pos.y+dgimbal));
 
 	// Roll gimbal settings
-	dgimbal = a_BANK*(avel.z-tgt_rate.z) + b_BANK*aacc.z;
+	dgimbal = a_bank*(avel.z-tgt_rate.z) + b_bank*aacc.z;
 	gimbal_pos.z = min (roll_gimbal_max, max(-roll_gimbal_max, gimbal_pos.z+dgimbal));
 
 	// Set SRB gimbals
@@ -1199,8 +1199,8 @@ void Atlantis::AutoRCS (const VECTOR3 &tgt_rate)
 	const double b_pitch = 2;
 	const double a_yaw = 2e-1;
 	const double b_yaw = 6e-2;
-	const double a_BANK = 2e-1;
-	const double b_BANK = 6e-2;
+	const double a_bank = 2e-1;
+	const double b_bank = 6e-2;
 
 	VECTOR3 avel, aacc;
 	GetAngularVel(avel);
@@ -1229,7 +1229,7 @@ void Atlantis::AutoRCS (const VECTOR3 &tgt_rate)
 	}
 
 	// Roll RCS settings
-	drcs = a_BANK*(tgt_rate.z-avel.z) - b_BANK*aacc.z;
+	drcs = a_bank*(tgt_rate.z-avel.z) - b_bank*aacc.z;
 	if (drcs > 0.0) {
 		SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, min(drcs, 1.0));
 		SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0);
@@ -1736,9 +1736,9 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 		if (!man_yaw) man_yaw = -GetManualControlLevel (THGROUP_ATT_YAWRIGHT, MANCTRL_ROTMODE, MANCTRL_ANYDEVICE);
 		if (man_yaw)   tgt_rate.y = man_yaw*0.07;
 
-		double man_BANK  =-GetManualControlLevel (THGROUP_ATT_BANKLEFT, MANCTRL_ROTMODE, MANCTRL_ANYDEVICE);
-		if (!man_BANK) man_BANK = GetManualControlLevel (THGROUP_ATT_BANKRIGHT, MANCTRL_ROTMODE, MANCTRL_ANYDEVICE);
-		if (man_BANK)  tgt_rate.z = man_BANK*0.07;
+		double man_bank  =-GetManualControlLevel (THGROUP_ATT_BANKLEFT, MANCTRL_ROTMODE, MANCTRL_ANYDEVICE);
+		if (!man_bank) man_bank = GetManualControlLevel (THGROUP_ATT_BANKRIGHT, MANCTRL_ROTMODE, MANCTRL_ANYDEVICE);
+		if (man_bank)  tgt_rate.z = man_bank*0.07;
 	}
 
 	switch (status) {
