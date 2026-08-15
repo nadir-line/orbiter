@@ -1797,7 +1797,6 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
         if (GetMachNumber() > 5.0) {
             aoa_cmd = GetManualControlLevel(THGROUP_ATT_PITCHUP)-GetManualControlLevel(THGROUP_ATT_PITCHDOWN); // pitch input commmand
             aoa_curr = GetAOA();
-            aoa_tgt += aoa_cmd * 0.1 * simdt; // target AOA is incremented by pitch command input
             aoa_tgt = clamp(aoa_tgt, PI/12, PI/4); // limit target AOA to between 15 and 45 degrees
             aoa_error = aoa_tgt - aoa_curr;
 
@@ -1811,12 +1810,11 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 
             roll_cmd = GetManualControlLevel(THGROUP_ATT_BANKRIGHT)-GetManualControlLevel(THGROUP_ATT_BANKLEFT); // roll input command
             roll_curr = GetBank();
-            roll_tgt += roll_cmd * 0.1 * simdt; // target roll is incremented by roll command input
             roll_tgt = clamp(roll_tgt, -PI/2, PI/2); // limit target roll to between -90 and 90 degrees
             roll_error = roll_tgt - roll_curr;
 
             roll_rate_curr = avel.z;
-            roll_rate_tgt = roll_error * 0.1; // target roll rate is proportional to roll error
+            roll_rate_tgt = -1.0 * roll_error; // target roll rate is proportional to roll error
             roll_rate_error = roll_rate_tgt - roll_rate_curr;
 
             if (abs(aoa_cmd) < 0.01) { // if no pitch input command, set RCS to stabilise pitch rate to target current AOA
