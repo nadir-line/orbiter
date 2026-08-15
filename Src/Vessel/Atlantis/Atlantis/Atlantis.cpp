@@ -1797,7 +1797,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
         if (GetMachNumber() > 5.0) {
             aoa_cmd = GetManualControlLevel(THGROUP_ATT_PITCHUP)-GetManualControlLevel(THGROUP_ATT_PITCHDOWN); // pitch input commmand
             aoa_curr = GetAOA();
-            aoa_tgt = clamp(aoa_tgt, PI/12, PI/4); // limit target AOA to between 15 and 45 degrees
+            aoa_tgt = clamp(aoa_tgt, 15 * RAD, 40 * RAD); // limit target AOA to between 15 and 40 degrees
             aoa_error = aoa_tgt - aoa_curr;
 
             aoa_rate_curr = avel.x;
@@ -1810,7 +1810,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 
             roll_cmd = GetManualControlLevel(THGROUP_ATT_BANKRIGHT)-GetManualControlLevel(THGROUP_ATT_BANKLEFT); // roll input command
             roll_curr = GetBank();
-            roll_tgt = clamp(roll_tgt, -PI/2, PI/2); // limit target roll to between -90 and 90 degrees
+            roll_tgt = clamp(roll_tgt, -80 * RAD, +80 * RAD); // limit target roll to between -80 and 80 degrees
             roll_error = roll_tgt - roll_curr;
 
             roll_rate_curr = avel.z;
