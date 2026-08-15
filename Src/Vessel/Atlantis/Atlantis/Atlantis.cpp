@@ -1818,7 +1818,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
             aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
 
             yaw_rate_curr = -avel.y;
-            yaw_rate_tgt = -0.2 * beta; // target yaw rate is proportional to slip angle
+            yaw_rate_tgt = -0.2 * beta + aoa_curr * roll_rate_curr; // target yaw rate is proportional to slip angle + roll rate * AOA
             yaw_rate_error = yaw_rate_tgt - yaw_rate_curr;
 
             roll_cmd = GetManualControlLevel(THGROUP_ATT_BANKRIGHT)-GetManualControlLevel(THGROUP_ATT_BANKLEFT); // roll input command
