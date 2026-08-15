@@ -85,6 +85,9 @@ double elev_trim_tgt;
 double elev_curr;
 double elev_tgt;
 
+// Stability augmentation system
+bool sas_enabled = true;
+
 
 // ==============================================================
 // Local prototypes
@@ -1804,7 +1807,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 	case 4: // reentry
         // Set body flap to trim position and elevons to neutral trim, if Mach number is above 5
         // Set pitch RCS to counter pitch rate error as well
-        if (GetMachNumber() > 5.0) {
+        if (GetMachNumber() > 1.0 && sas_enabled) {
             aoa_cmd = GetManualControlLevel(THGROUP_ATT_PITCHUP)-GetManualControlLevel(THGROUP_ATT_PITCHDOWN); // pitch input commmand
             aoa_curr = GetAOA();
             aoa_tgt = clamp(aoa_tgt, 5 * RAD, 40 * RAD); // limit target AOA to between 15 and 40 degrees
@@ -1850,6 +1853,11 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  0.0);
             }
 
+            // Yaw to zero beta
+            SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT,  clamp(-yaw_rate_error * 5.0, 0.0, 1.0));
+            SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, clamp(+yaw_rate_error * 5.0, 0.0, 1.0));
+
+            // Set body flap to trim position and elevons to neutral trim
             SetControlSurfaceLevel(AIRCTRL_FLAP, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
             SetControlSurfaceLevel(AIRCTRL_ELEVATOR, 0.0);
 
@@ -1858,21 +1866,12 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
         else {
             SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
             SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
+            SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT, 0.0);
+            SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, 0.0);
             SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);
             SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0.0);
             SetControlSurfaceLevel(AIRCTRL_FLAP, 0.0);
             SetControlSurfaceLevel(AIRCTRL_ELEVATOR, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
-        }
-
-
-        // Set rudder and thrusters to counter slip angle, if Mach number is above 1
-        if (GetMachNumber() > 1.0) {
-            SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT,  clamp(-yaw_rate_error * 5.0, 0.0, 1.0));
-            SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, clamp(+yaw_rate_error * 5.0, 0.0, 1.0));
-        }
-        else {
-            SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT, 0.0);
-            SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, 0.0);
         }
 
         // sprintf(oapiDebugString(), "AOA Target: %+0.3f", aoa_tgt * 57.296);
