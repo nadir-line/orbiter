@@ -1719,6 +1719,10 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
     VECTOR3 avel;
     GetAngularVel(avel);
 
+    VECTOR3 ofs;
+    GetHorizonAirspeedVector(ofs);
+    double vert_spd = ofs.y;
+
 	engine_light_level = GetThrusterGroupLevel (THGROUP_MAIN);
 
 	VECTOR3 tgt_rate = _V(0,0,0); // target rotation rates - used for setting engine gimbals
@@ -1787,8 +1791,9 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 		};
 
         // When altitude is below Entry Interface altitude, 121.92 km/400000 ft
-        // Enable RCS and control surfaces and set trim to 0.5
-		if (GetAltitude(ALTMODE_GROUND) < 121920) {
+        // Vertical speed is below -10 m/s
+        // Enable RCS and control surfaces
+		if (GetAltitude(ALTMODE_GROUND) < 121920 && vert_spd < -10) {
 			EnableRCS(RCS_ROT);
 			SetADCtrlMode(7);
             aoa_curr = GetAOA();
