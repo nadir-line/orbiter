@@ -1691,6 +1691,12 @@ void Atlantis::clbkPostCreation ()
 	EnableOMS (status == 3);
 	SetADCtrlMode (status < 4 ? 0 : 7);
 
+    // set target AOA and bank for reentry
+    if (status >= 4) {
+        aoa_tgt = GetAOA();
+        roll_tgt = GetBank();
+    }
+
 	UpdateMesh ();
 }
 
