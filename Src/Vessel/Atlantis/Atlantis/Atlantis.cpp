@@ -1810,7 +1810,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
         if (GetMachNumber() > 1.0 && sas_enabled) {
             aoa_cmd = GetManualControlLevel(THGROUP_ATT_PITCHUP)-GetManualControlLevel(THGROUP_ATT_PITCHDOWN); // pitch input commmand
             aoa_curr = GetAOA();
-            aoa_tgt = clamp(aoa_tgt, 5 * RAD, 40 * RAD); // limit target AOA to between 15 and 40 degrees
+            aoa_tgt = clamp(aoa_tgt, 0 * RAD, 40 * RAD); // limit target AOA to between 0 and 40 degrees
             aoa_error = aoa_tgt - aoa_curr;
 
             aoa_rate_curr = avel.x;
