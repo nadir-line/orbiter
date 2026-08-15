@@ -437,6 +437,7 @@ private:
 	MGROUP_TRANSFORM *sat_anim, *sat_ref;
 
 	bool bManualSeparate; // flag for user-induced booster or tank separation
+	bool sas_enabled;     // reentry stability augmentation system enable flag
 	bool reset_sat;
 	OBJHANDLE hMMU, hSAT;
 	bool render_cockpit;

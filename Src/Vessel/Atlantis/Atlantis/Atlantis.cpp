@@ -85,10 +85,6 @@ double elev_trim_tgt;
 double elev_curr;
 double elev_tgt;
 
-// Stability augmentation system
-bool sas_enabled = true;
-
-
 // ==============================================================
 // Local prototypes
 
@@ -301,6 +297,7 @@ Atlantis::Atlantis (OBJHANDLE hObj, int fmodel)
 	center_arm      = false;
 	arm_moved       = arm_scheduled = false;
 	bManualSeparate = false;
+	sas_enabled     = true;
 	ofs_sts_sat     = _V(0,0,0);
 	do_eva          = false;
 	do_plat         = false;
@@ -1503,6 +1500,7 @@ void Atlantis::clbkLoadStateEx (FILEHANDLE scn, void *vs)
 	double sts_sat_x = 0.0;
 	double sts_sat_y = 0.0;
 	double sts_sat_z = 0.0;
+	sas_enabled = true;
 	spdb_status = AnimState::CLOSED; spdb_proc = 0.0;
 
 	while (oapiReadScenario_nextline (scn, line)) {
@@ -1531,6 +1529,10 @@ void Atlantis::clbkLoadStateEx (FILEHANDLE scn, void *vs)
 			sscanf (line+16, "%lf%lf%lf", &cargo_static_ofs.x, &cargo_static_ofs.y, &cargo_static_ofs.z);
 		} else if (!_strnicmp (line, "ARM_STATUS", 10)) {
 			sscanf (line+10, "%lf%lf%lf%lf%lf%lf", &arm_sy, &arm_sp, &arm_ep, &arm_wp, &arm_wy, &arm_wr);
+		} else if (!_strnicmp (line, "SAS_ENABLED", 11)) {
+			int enabled = 1;
+			sscanf (line+11, "%d", &enabled);
+			sas_enabled = (enabled != 0);
 		} else if (!_strnicmp (line, "TRIM", 4)) {
 			double trim;
 			sscanf (line+4, "%lf", &trim);
@@ -1609,6 +1611,7 @@ void Atlantis::clbkSaveState (FILEHANDLE scn)
 
 	sprintf (cbuf, "%0.4f %0.4f %0.4f %0.4f %0.4f %0.4f", arm_sy, arm_sp, arm_ep, arm_wp, arm_wy, arm_wr);
 	oapiWriteScenario_string (scn, (char*)"ARM_STATUS", cbuf);
+	oapiWriteScenario_int (scn, (char*)"SAS_ENABLED", sas_enabled ? 1 : 0);
 	oapiWriteScenario_float (scn, (char*)"TRIM", GetControlSurfaceLevel (AIRCTRL_ELEVATORTRIM));
 
 	oapiWriteScenario_float (scn, (char*)"SAT_OFS_X", ofs_sts_sat.x);
@@ -2428,6 +2431,12 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
 			break;
 		}
 	}
+
+    // show SAS status
+	if (status >= 4 && !sas_enabled) {
+		skp->SetTextAlign (oapi::Sketchpad::CENTER, oapi::Sketchpad::BASELINE);
+		skp->Text (cx, cy-100, "SAS OFF", 7);
+	}
 	return true;
 }
 
@@ -2443,6 +2452,9 @@ int Atlantis::clbkConsumeBufferedKey (DWORD key, bool down, char *kstate)
 		switch (key) {
 		case OAPI_KEY_E:
 			if (status != 3) return 1; // Allow MMU only after orbiter has detached from MT
+			return 1;
+		case OAPI_KEY_S:
+			sas_enabled = !sas_enabled;
 			return 1;
 		}
 	} else if (KEYMOD_CONTROL (kstate)) {
