@@ -2444,7 +2444,7 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
 		const int span = bVC ? 40 : 100;
 		const int x0 = bVC ? (cx + (int)(0.20 * hps->W)) : (hps->W - 118);
 		const int x1 = x0 + span;
-		const int y  = bVC ? (cy + (int)(0.20 * hps->H)) : (hps->H - 26);
+		const int y  = bVC ? (cy + (int)(0.30 * hps->H)) : (hps->H - 26);
 		const double cur = clamp (spdb_proc, 0.0, 1.0);
 		const double cmd = clamp (spdb_proc, 0.0, 1.0);
 		const int xcur = x0 + (int)((x1 - x0) * cur);
