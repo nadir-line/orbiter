@@ -2463,9 +2463,9 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
 		skp->Polygon (tri, 3);
 
 		oapi::IVECTOR2 tricmd[3];
-		tricmd[0].x = xcmd; tricmd[0].y = y+10;
-		tricmd[1].x = xcmd-4; tricmd[1].y = y+16;
-		tricmd[2].x = xcmd+4; tricmd[2].y = y+16;
+		tricmd[0].x = xcmd; tricmd[0].y = y;
+		tricmd[1].x = xcmd-4; tricmd[1].y = y+6;
+		tricmd[2].x = xcmd+4; tricmd[2].y = y+6;
 		skp->Polygon (tricmd, 3);
 	}
 	return true;
