@@ -2437,11 +2437,40 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
 		skp->SetTextAlign (oapi::Sketchpad::CENTER, oapi::Sketchpad::BASELINE);
 		skp->Text (cx, cy-100, "SAS OFF", 7);
 	}
+
+	// show speedbrake position indicator in the lower-right HUD area
+	{
+		const bool bVC = (oapiCockpitMode() == COCKPIT_VIRTUAL);
+		const int span = bVC ? 40 : 100;
+		const int x0 = bVC ? (cx + (int)(0.20 * hps->W)) : (hps->W - 118);
+		const int x1 = x0 + span;
+		const int y  = bVC ? (cy + (int)(0.20 * hps->H)) : (hps->H - 26);
+		const double cur = clamp (spdb_proc, 0.0, 1.0);
+		const double cmd = clamp (spdb_proc, 0.0, 1.0);
+		const int xcur = x0 + (int)((x1 - x0) * cur);
+		const int xcmd = x0 + (int)((x1 - x0) * cmd);
+
+		skp->Line (x0, y, x1, y);
+		for (int i = 0; i < 5; ++i) {
+			const int x = x0 + (int)((x1 - x0) * i / 4.0);
+			skp->Line (x, y-2, x, y+2);
+		}
+
+		oapi::IVECTOR2 tri[3];
+		tri[0].x = xcur; tri[0].y = y;
+		tri[1].x = xcur-4; tri[1].y = y-6;
+		tri[2].x = xcur+4; tri[2].y = y-6;
+		skp->Polygon (tri, 3);
+
+		oapi::IVECTOR2 tricmd[3];
+		tricmd[0].x = xcmd; tricmd[0].y = y+10;
+		tricmd[1].x = xcmd-4; tricmd[1].y = y+16;
+		tricmd[2].x = xcmd+4; tricmd[2].y = y+16;
+		skp->Polygon (tricmd, 3);
+	}
 	return true;
 }
 
-// --------------------------------------------------------------
-// Keyboard interface handler (buffered key events)
 // --------------------------------------------------------------
 int Atlantis::clbkConsumeBufferedKey (DWORD key, bool down, char *kstate)
 {
