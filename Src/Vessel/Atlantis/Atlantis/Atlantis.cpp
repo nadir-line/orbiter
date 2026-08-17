@@ -1855,8 +1855,8 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
             if (abs(aoa_cmd) < 0.01) { // if no pitch input command, set RCS and trim to stabilise pitch rate to target current AOA
                 SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 15, 0.0, 1.0));
                 SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 15, 0.0, 1.0));
-                elev_trim_tgt += aoa_rate_error * 2.0 * simdt; // trim target is proportional to AOA rate error
-                elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 0.5); // limit trim target to between 0.0 and 0.5
+                elev_trim_tgt += aoa_rate_error * 5.0 * simdt; // trim target is proportional to AOA rate error
+                elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0); // limit trim target to between 0.0 and 1.0
                 SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt);
             }
             else { // if pitch input command is given, set target AOA to current AOA and set RCS to zero
