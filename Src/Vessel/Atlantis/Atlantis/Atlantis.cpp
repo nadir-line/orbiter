@@ -1757,6 +1757,19 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 		if (man_bank)  tgt_rate.z = man_bank*0.07;
 	}
 
+	if (status == 4) {
+		for (DWORD i = 0; i < GetThrusterCount(); ++i) {
+			THRUSTER_HANDLE th = GetThrusterHandleByIndex(i);
+			if (!th) continue;
+			VECTOR3 ref;
+			GetThrusterRef(th, ref);
+			if (ref.z > 0.0) {
+				SetThrusterLevel(th, 0.0);
+				SetThrusterResource(th, NULL);
+			}
+		}
+	}
+
 	switch (status) {
 	case 0: // launch configuration
 		if (!ascap->Active() && pET && GetEngineLevel (ENGINE_MAIN) > 0.95) {
