@@ -1732,6 +1732,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 		if (man_bank)  tgt_rate.z = man_bank*0.07;
 	}
 
+    // During reentry, disable forward thrusters
 	if (status == 4) {
 		for (DWORD i = 0; i < GetThrusterCount(); ++i) {
 			THRUSTER_HANDLE th = GetThrusterHandleByIndex(i);
