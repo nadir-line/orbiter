@@ -494,7 +494,7 @@ void Atlantis::CreateAirfoils ()
 	CreateControlSurface (AIRCTRL_RUDDER,   3.0, 1.5, _V( 0, 3,  -16), AIRCTRL_AXIS_YPOS, anim_rudder);
 	CreateControlSurface (AIRCTRL_AILERON,  4.0, 1.5, _V( 7,-0.5,-15), AIRCTRL_AXIS_XPOS, anim_raileron);
 	CreateControlSurface (AIRCTRL_AILERON,  4.0, 1.5, _V(-7,-0.5,-15), AIRCTRL_AXIS_XNEG, anim_laileron);
-	CreateControlSurface (AIRCTRL_FLAP,    20.0, 1.5, _V( 0, 0,  -16), AIRCTRL_AXIS_XPOS, anim_flap);
+	CreateControlSurface (AIRCTRL_FLAP,    20.0, 1.5, _V( 0, 0,  -18), AIRCTRL_AXIS_XPOS, anim_flap);
 
 	CreateVariableDragElement (&spdb_proc, 5, _V(0, 7.5, -14)); // speedbrake drag
 	CreateVariableDragElement (&gear_proc, 2, _V(0,-3,0));      // landing gear drag
