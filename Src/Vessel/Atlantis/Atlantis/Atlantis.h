@@ -437,7 +437,42 @@ private:
 	MGROUP_TRANSFORM *sat_anim, *sat_ref;
 
 	bool bManualSeparate; // flag for user-induced booster or tank separation
-	bool sas_enabled;     // reentry stability augmentation system enable flag
+
+    // Reentry control parameters
+
+    // Digital autopilot
+    bool dap_entry_enabled; // flag for DAP entry enable
+
+    // AOA control
+    double aoa_cmd;
+    double aoa_curr;
+    double aoa_tgt;
+    double aoa_error;
+
+    double aoa_rate_curr;
+    double aoa_rate_tgt;
+    double aoa_rate_error;
+
+    // Yaw control
+    double yaw_rate_curr;
+    double yaw_rate_tgt;
+    double yaw_rate_error;
+
+    // Roll control
+    double roll_cmd;
+    double roll_curr;
+    double roll_tgt;
+    double roll_error;
+
+    double roll_rate_curr;
+    double roll_rate_tgt;
+    double roll_rate_error;
+
+    // Aero surfaces
+    double elev_trim_curr;
+    double elev_trim_tgt;
+    double elev_curr;
+    double elev_tgt;
 	bool reset_sat;
 	OBJHANDLE hMMU, hSAT;
 	bool render_cockpit;

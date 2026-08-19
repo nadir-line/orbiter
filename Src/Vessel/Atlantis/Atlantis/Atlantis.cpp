@@ -52,38 +52,6 @@ HELPCONTEXT g_hc = {
 	(char*)"html/vessels/Atlantis.chm::/Atlantis.hhk"
 };
 
-// Reentry control parameters
-
-// AOA control
-double aoa_cmd;
-double aoa_curr;
-double aoa_tgt;
-double aoa_error;
-
-double aoa_rate_curr;
-double aoa_rate_tgt;
-double aoa_rate_error;
-
-// Yaw control
-double yaw_rate_curr;
-double yaw_rate_tgt;
-double yaw_rate_error;
-
-// Roll control
-double roll_cmd;
-double roll_curr;
-double roll_tgt;
-double roll_error;
-
-double roll_rate_curr;
-double roll_rate_tgt;
-double roll_rate_error;
-
-// Aero surfaces
-double elev_trim_curr;
-double elev_trim_tgt;
-double elev_curr;
-double elev_tgt;
 
 // ==============================================================
 // Local prototypes
@@ -297,7 +265,9 @@ Atlantis::Atlantis (OBJHANDLE hObj, int fmodel)
 	center_arm      = false;
 	arm_moved       = arm_scheduled = false;
 	bManualSeparate = false;
-	sas_enabled     = true;
+	dap_entry_enabled     = true;
+	aoa_cmd         = 0.0;
+	roll_cmd= 0.0;
 	ofs_sts_sat     = _V(0,0,0);
 	do_eva          = false;
 	do_plat         = false;
@@ -1500,7 +1470,7 @@ void Atlantis::clbkLoadStateEx (FILEHANDLE scn, void *vs)
 	double sts_sat_x = 0.0;
 	double sts_sat_y = 0.0;
 	double sts_sat_z = 0.0;
-	sas_enabled = true;
+	dap_entry_enabled = true;
 	spdb_status = AnimState::CLOSED; spdb_proc = 0.0;
 
 	while (oapiReadScenario_nextline (scn, line)) {
@@ -1532,7 +1502,7 @@ void Atlantis::clbkLoadStateEx (FILEHANDLE scn, void *vs)
 		} else if (!_strnicmp (line, "SAS_ENABLED", 11)) {
 			int enabled = 1;
 			sscanf (line+11, "%d", &enabled);
-			sas_enabled = (enabled != 0);
+			dap_entry_enabled = (enabled != 0);
 		} else if (!_strnicmp (line, "TRIM", 4)) {
 			double trim;
 			sscanf (line+4, "%lf", &trim);
@@ -1611,7 +1581,7 @@ void Atlantis::clbkSaveState (FILEHANDLE scn)
 
 	sprintf (cbuf, "%0.4f %0.4f %0.4f %0.4f %0.4f %0.4f", arm_sy, arm_sp, arm_ep, arm_wp, arm_wy, arm_wr);
 	oapiWriteScenario_string (scn, (char*)"ARM_STATUS", cbuf);
-	oapiWriteScenario_int (scn, (char*)"SAS_ENABLED", sas_enabled ? 1 : 0);
+	oapiWriteScenario_int (scn, (char*)"SAS_ENABLED", dap_entry_enabled ? 1 : 0);
 	oapiWriteScenario_float (scn, (char*)"TRIM", GetControlSurfaceLevel (AIRCTRL_ELEVATORTRIM));
 
 	oapiWriteScenario_float (scn, (char*)"SAT_OFS_X", ofs_sts_sat.x);
@@ -1721,6 +1691,11 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 {
 	ascap->Update (simt);
 
+	if (!dap_entry_enabled || status < 4) {
+		aoa_cmd = 0.0;
+		roll_cmd = 0.0;
+	}
+
 	//double met = (status == 0 ? 0.0 : simt-t0);
 	double met = ascap->GetMET (simt);
 
@@ -1827,78 +1802,85 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 		}
 		break;
 	case 4: // reentry
-        // Set body flap to trim position and elevons to neutral trim, if Mach number is above 5
-        // Set pitch RCS to counter pitch rate error as well
-        if (GetMachNumber() > 1.0 && sas_enabled) {
-            aoa_cmd = GetManualControlLevel(THGROUP_ATT_PITCHUP)-GetManualControlLevel(THGROUP_ATT_PITCHDOWN); // pitch input commmand
-            aoa_curr = GetAOA();
-            aoa_tgt = clamp(aoa_tgt, 0 * RAD, 40 * RAD); // limit target AOA to between 0 and 40 degrees
-            aoa_error = aoa_tgt - aoa_curr;
+        // Active reentry autopilot: Mach > 1.0 and DAP entry mode enabled
+        if (GetMachNumber() > 1.0) {
+            if (dap_entry_enabled) {
+                // === RCS AND CONTROL SURFACE AUTOPILOT ===
+                // === PITCH AXIS CONTROL ===
+                aoa_curr = GetAOA();
+                aoa_tgt += 5.0 * RAD * aoa_cmd * simdt;
+                aoa_tgt = clamp(aoa_tgt, 0 * RAD, 40 * RAD);    // Limit AOA to 0-40°
+                aoa_error = aoa_tgt - aoa_curr;
 
-            aoa_rate_curr = avel.x;
-            aoa_rate_tgt = aoa_error * 0.1; // target AOA rate is proportional to AOA error
-            aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
+                aoa_rate_curr = avel.x;
+                aoa_rate_tgt = 0.1 * aoa_error; // Target rate proportional to error
+                aoa_rate_tgt = clamp(aoa_rate_tgt, -10 * RAD, +10 * RAD); // Limit pitch rate to ±10 deg/s
+                aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
 
-            yaw_rate_curr = -avel.y;
-            yaw_rate_tgt = -0.2 * beta + aoa_curr * roll_rate_curr; // target yaw rate is proportional to slip angle + roll rate * AOA
-            yaw_rate_error = yaw_rate_tgt - yaw_rate_curr;
-
-            roll_cmd = GetManualControlLevel(THGROUP_ATT_BANKRIGHT)-GetManualControlLevel(THGROUP_ATT_BANKLEFT); // roll input command
-            roll_curr = GetBank();
-            roll_tgt = clamp(roll_tgt, -80 * RAD, +80 * RAD); // limit target roll to between -80 and 80 degrees
-            roll_error = roll_tgt - roll_curr;
-
-            roll_rate_curr = avel.z;
-            roll_rate_tgt = -1.0 * roll_error; // target roll rate is proportional to roll error
-            roll_rate_error = roll_rate_tgt - roll_rate_curr;
-
-            if (abs(aoa_cmd) < 0.01) { // if no pitch input command, set RCS and trim to stabilise pitch rate to target current AOA
+                // Pitch RCS control: counter pitch rate error
                 SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 15, 0.0, 1.0));
                 SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 15, 0.0, 1.0));
-                elev_trim_tgt += aoa_rate_error * 5.0 * simdt; // trim target is proportional to AOA rate error
-                elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0); // limit trim target to between 0.0 and 1.0
-                SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt);
-            }
-            else { // if pitch input command is given, set target AOA to current AOA and set RCS to zero
-                aoa_tgt = aoa_curr;
-                SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   0.0);
-                SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
-            }
 
-            if (abs(roll_cmd) < 0.01) { // if no roll input command, set RCS to stabilise roll rate to target current roll
+                // Pitch trim: elevons and body flap
+                elev_tgt = aoa_rate_error * 0.1;
+                elev_trim_tgt += aoa_rate_error * 5.0 * simdt;
+                elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
+                SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
+                SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt);
+
+                // === ROLL AXIS CONTROL ===
+                roll_curr = -GetBank(); // GetBank() returns negative for right bank, positive for left bank
+                roll_tgt += 5.0 * RAD * roll_cmd * simdt;
+                roll_tgt = clamp(roll_tgt, -80 * RAD, +80 * RAD);   // Limit roll to ±80°
+                roll_error = roll_tgt - roll_curr;
+
+                roll_rate_curr = avel.z;
+                roll_rate_tgt = 1.0 * roll_error;  // Target rate proportional to error
+                roll_rate_tgt = clamp(roll_rate_tgt, -5 * RAD, +5 * RAD); // Limit roll rate to ±5 deg/s
+                roll_rate_error = roll_rate_tgt - roll_rate_curr;
+
+                // Roll RCS control
                 SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, clamp(+roll_rate_error * 15, 0.0, 1.0));
                 SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  clamp(-roll_rate_error * 15, 0.0, 1.0));
+
+                // Roll control surfaces: elevons
+                SetControlSurfaceLevel(AIRCTRL_AILERON, roll_rate_error * 0.1);
+
+                // === YAW AXIS CONTROL ===
+                yaw_rate_curr = -avel.y;
+                yaw_rate_tgt = (-0.1 * beta) + (aoa_curr * roll_rate_curr); // Proportional to slip + AOA * roll rate
+                yaw_rate_tgt = clamp(yaw_rate_tgt, -5 * RAD, +5 * RAD); // Limit yaw rate to ±5 deg/s
+                yaw_rate_error = yaw_rate_tgt - yaw_rate_curr;
+
+                // Yaw RCS control: drive slip angle to zero
+                SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT,  clamp(-yaw_rate_error * 5.0, 0.0, 1.0));
+                SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, clamp(+yaw_rate_error * 5.0, 0.0, 1.0));
             }
-            else { // if roll input command is given, set target roll to current roll and set RCS to zero
-                roll_tgt = roll_curr;
+            // Passive reentry: no autopilot active
+            else {
+                // Disable all automated RCS thruster commands
+                SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
+                SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
+                SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT, 0.0);
+                SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, 0.0);
                 SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);
-                SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  0.0);
+                SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0.0);
             }
-
-            // Yaw to zero beta
-            SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT,  clamp(-yaw_rate_error * 5.0, 0.0, 1.0));
-            SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, clamp(+yaw_rate_error * 5.0, 0.0, 1.0));
-
-            // Set body flap to trim position and elevons to neutral trim
-            SetControlSurfaceLevel(AIRCTRL_FLAP, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
-            SetControlSurfaceLevel(AIRCTRL_ELEVATOR, 0.0);
-
         }
-        // Otherwise, set RCS to zero, flaps to neutral position and trim elevons to trim position
-        else {
-            SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
-            SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
-            SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT, 0.0);
-            SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, 0.0);
-            SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);
-            SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0.0);
+        else { // Mach < 1.0, disable RCS
+            EnableRCS(RCS_NONE);
+            // Neutral control surfaces (except elevator trim)
             SetControlSurfaceLevel(AIRCTRL_FLAP, 0.0);
             SetControlSurfaceLevel(AIRCTRL_ELEVATOR, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
+            SetControlSurfaceLevel(AIRCTRL_AILERON, 0.0);
         }
 
         // sprintf(oapiDebugString(), "AOA Target: %+0.3f", aoa_tgt * 57.296);
-        // sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
-        sprintf(oapiDebugString(), "Roll Rate: %+0.3f", roll_rate_curr * 57.296);
+        sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
+        // sprintf(oapiDebugString(), "Roll Rate: %+0.3f", roll_rate_curr * 57.296);
+        // sprintf(oapiDebugString(), "Roll: %+0.3f", roll_curr * 57.296);
+        // sprintf(oapiDebugString(), "Roll Target: %+0.3f", roll_tgt * 57.296);
+        // sprintf(oapiDebugString(), "Roll Rate Error: %+0.3f", roll_rate_error * 57.296);
 		break;
 	}
 
@@ -2446,7 +2428,7 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
 	}
 
     // show SAS status
-	if (status >= 4 && !sas_enabled) {
+	if (status >= 4 && !dap_entry_enabled) {
 		skp->SetTextAlign (oapi::Sketchpad::CENTER, oapi::Sketchpad::BASELINE);
 		skp->Text (cx, cy-100, "SAS OFF", 7);
 	}
@@ -2487,6 +2469,38 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
 // --------------------------------------------------------------
 int Atlantis::clbkConsumeBufferedKey (DWORD key, bool down, char *kstate)
 {
+	// === DAP ENTRY MODE NUMPAD CONTROL ===
+	// When in reentry phase (status >= 4), consume numpad keys for DAP attitude control
+	if (status >= 4) {
+		// Handle Numpad 5 toggle outside the dap_entry_enabled check so it can be toggled anytime
+		if (key == OAPI_KEY_NUMPAD5 && down) {
+			dap_entry_enabled = !dap_entry_enabled;
+			return 1;  // KEY CONSUMED
+		}
+
+		// All other numpad keys only work when DAP is active
+		if (dap_entry_enabled) {
+			switch (key) {
+			case OAPI_KEY_NUMPAD2:
+				// Numpad 2: pitch up (increase AOA)
+				aoa_cmd = down ? +1.0 : 0.0;
+				return 1;  // KEY CONSUMED
+			case OAPI_KEY_NUMPAD8:
+				// Numpad 8: pitch down (decrease AOA)
+				aoa_cmd = down ? -1.0 : 0.0;
+				return 1;  // KEY CONSUMED
+			case OAPI_KEY_NUMPAD6:
+				// Numpad 6: roll right
+				roll_cmd = down ? +1.0 : 0.0;
+				return 1;  // KEY CONSUMED
+			case OAPI_KEY_NUMPAD4:
+				// Numpad 4: roll left
+				roll_cmd = down ? -1.0 : 0.0;
+				return 1;  // KEY CONSUMED
+			}
+		}
+	}
+
 	if (!down) return 0; // only process keydown events
 
 	if (KEYMOD_SHIFT (kstate)) {
@@ -2496,7 +2510,7 @@ int Atlantis::clbkConsumeBufferedKey (DWORD key, bool down, char *kstate)
 			if (status != 3) return 1; // Allow MMU only after orbiter has detached from MT
 			return 1;
 		case OAPI_KEY_S:
-			sas_enabled = !sas_enabled;
+			dap_entry_enabled = !dap_entry_enabled;
 			return 1;
 		}
 	} else if (KEYMOD_CONTROL (kstate)) {
