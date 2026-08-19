@@ -473,6 +473,10 @@ private:
     double elev_trim_tgt;
     double elev_curr;
     double elev_tgt;
+    double aileron_curr;
+    double aileron_tgt;
+
+    // Miscellaneous
 	bool reset_sat;
 	OBJHANDLE hMMU, hSAT;
 	bool render_cockpit;

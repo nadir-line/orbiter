@@ -1814,7 +1814,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 aoa_error = aoa_tgt - aoa_curr;
 
                 aoa_rate_curr = avel.x;
-                aoa_rate_tgt = 0.1 * aoa_error; // Target rate proportional to error
+                aoa_rate_tgt = 1.0 * aoa_error; // Target rate proportional to error
                 aoa_rate_tgt = clamp(aoa_rate_tgt, -10 * RAD, +10 * RAD); // Limit pitch rate to ±10 deg/s
                 aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
 
@@ -1825,7 +1825,8 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 }
                 else {
                     // Pitch trim: elevons and body flap
-                    elev_tgt = aoa_rate_error * 1.0;
+                    elev_tgt = aoa_rate_error * 5.0;
+                    elev_tgt = clamp(elev_tgt, -1.0, +1.0);
                     elev_trim_tgt += aoa_rate_error * 5.0 * simdt;
                     elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
                     SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
@@ -1849,7 +1850,9 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 }
                 else {
                     // Roll control surfaces: elevons
-                    SetControlSurfaceLevel(AIRCTRL_AILERON, roll_rate_error * 0.1);
+                    aileron_tgt = roll_rate_error * 5.0;
+                    aileron_tgt = clamp(aileron_tgt, -1.0, +1.0);
+                    SetControlSurfaceLevel(AIRCTRL_AILERON, aileron_tgt);
                 }
 
                 // === YAW AXIS CONTROL ===
