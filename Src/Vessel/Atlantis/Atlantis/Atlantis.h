@@ -446,6 +446,8 @@ private:
     // AOA control
     double aoa_cmd;
     double aoa_curr;
+    double aoa_max;
+    double aoa_min;
     double aoa_rate_curr;
     double aoa_rate_tgt;
     double aoa_rate_error;
@@ -458,6 +460,7 @@ private:
     // Roll control
     double roll_cmd;
     double roll_curr;
+    double roll_max;
     double roll_rate_curr;
     double roll_rate_tgt;
     double roll_rate_error;
