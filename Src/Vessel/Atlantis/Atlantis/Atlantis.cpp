@@ -1811,10 +1811,10 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
 
                 if (aoa_curr > aoa_max) {
-                    aoa_rate_tgt = -5 * RAD; // Target pitch down rate of -5 deg/s
+                    aoa_rate_tgt = (aoa_max - aoa_curr) * RAD; // Target pitch down rate
                 }
                 else if (aoa_curr < aoa_min) {
-                    aoa_rate_tgt = +5 * RAD; // Target pitch up rate of +5 deg/s
+                    aoa_rate_tgt = (aoa_min - aoa_curr) * RAD; // Target pitch up rate
                 }
                 else {
                     aoa_rate_tgt = 0.0; // Target pitch rate of 0 deg/s
@@ -1851,10 +1851,10 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 roll_rate_error = roll_rate_tgt - roll_rate_curr;
 
                 if (roll_curr > +roll_max) {
-                    roll_rate_tgt = -5 * RAD; // Target roll down rate of -5 deg/s
+                    roll_rate_tgt = (+roll_max - roll_curr) * RAD; // Target roll left rate
                 }
                 else if (roll_curr < -roll_max) {
-                    roll_rate_tgt = +5 * RAD; // Target roll up rate of +5 deg/s
+                    roll_rate_tgt = (-roll_max - roll_curr) * RAD; // Target roll right rate
                 }
                 else {
                     roll_rate_tgt = 0.0; // Target roll rate of 0 deg/s
