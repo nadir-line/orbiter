@@ -1796,12 +1796,6 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 		break;
 	case 4: // reentry
         // Active reentry autopilot: Mach > 1.0 and DAP entry mode enabled
-        // Limits
-        aoa_max = 40 * RAD; // Maximum angle of attack in radians
-        aoa_min = 0 * RAD;  // Minimum angle of attack in radians
-        roll_max = 80 * RAD; // Maximum roll angle in radians
-
-        // If Mach number is greater than 1.0, perform active reentry control
         if (GetMachNumber() > 1.0) {
             if (dap_entry_enabled) {
                 // === RCS AND CONTROL SURFACE AUTOPILOT ===
@@ -1810,10 +1804,10 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 aoa_rate_curr = avel.x;
                 aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
 
-                if (aoa_curr > aoa_max) {
+                if (aoa_curr > 40 * RAD) {
                     aoa_rate_tgt = -5 * RAD; // Target pitch down rate of -5 deg/s
                 }
-                else if (aoa_curr < aoa_min) {
+                else if (aoa_curr < 0 * RAD) {
                     aoa_rate_tgt = +5 * RAD; // Target pitch up rate of +5 deg/s
                 }
                 else {
@@ -1846,14 +1840,14 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 }
 
                 // === ROLL AXIS CONTROL ===
-                roll_curr = -GetBank(); // Function returns negative value for right roll
+                roll_curr = -GetBank();
                 roll_rate_curr = avel.z;
                 roll_rate_error = roll_rate_tgt - roll_rate_curr;
 
-                if (roll_curr > +roll_max) {
+                if (roll_curr > 80 * RAD) {
                     roll_rate_tgt = -5 * RAD; // Target roll down rate of -5 deg/s
                 }
-                else if (roll_curr < -roll_max) {
+                else if (roll_curr < -80 * RAD) {
                     roll_rate_tgt = +5 * RAD; // Target roll up rate of +5 deg/s
                 }
                 else {
