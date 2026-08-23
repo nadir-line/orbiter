@@ -494,7 +494,7 @@ void Atlantis::CreateAirfoils ()
 	CreateControlSurface (AIRCTRL_RUDDER,   3.0, 1.5, _V( 0, 3,  -16), AIRCTRL_AXIS_YPOS, anim_rudder);
 	CreateControlSurface (AIRCTRL_AILERON,  4.0, 1.5, _V( 7,-0.5,-15), AIRCTRL_AXIS_XPOS, anim_raileron);
 	CreateControlSurface (AIRCTRL_AILERON,  4.0, 1.5, _V(-7,-0.5,-15), AIRCTRL_AXIS_XNEG, anim_laileron);
-	CreateControlSurface (AIRCTRL_FLAP,    20.0, 1.5, _V( 0, 0,  -18), AIRCTRL_AXIS_XPOS, anim_flap);
+	CreateControlSurface (AIRCTRL_FLAP,    16.0, 1.5, _V( 0, 0,  -18), AIRCTRL_AXIS_XPOS, anim_flap);
 
 	CreateVariableDragElement (&spdb_proc, 5, _V(0, 7.5, -14)); // speedbrake drag
 	CreateVariableDragElement (&gear_proc, 2, _V(0,-3,0));      // landing gear drag
@@ -1848,7 +1848,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     elev_trim_tgt += aoa_rate_error * 5.0;
                     elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
                     SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
-                    SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt);
+                    SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
                 }
                 if (aoa_mode == 2) { // AOA hold mode
                     aoa_curr = GetAOA();
@@ -1871,7 +1871,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     elev_trim_tgt += aoa_rate_error * 5.0 * simdt;
                     elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
                     SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
-                    SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt);
+                    SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
                 }
                 // === ROLL AXIS CONTROL ===
                 roll_curr = -GetBank(); // GetBank() returns negative for right bank, positive for left bank
@@ -1953,6 +1953,16 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, 0.0);
                 SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);
                 SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0.0);
+
+                // Trim
+                if (mach > 5.0) {
+                    SetControlSurfaceLevel(AIRCTRL_ELEVATOR, 0.0);
+                    SetControlSurfaceLevel(AIRCTRL_FLAP, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
+                }
+                else {
+                    SetControlSurfaceLevel(AIRCTRL_ELEVATOR, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
+                    SetControlSurfaceLevel(AIRCTRL_FLAP, 0.0);
+                }
             }
         }
         else { // Mach < 1.0, disable RCS
