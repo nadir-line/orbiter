@@ -1849,6 +1849,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
                     SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
                     SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
+                    SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with body flap
                 }
                 if (aoa_mode == 2) { // AOA hold mode
                     aoa_curr = GetAOA();
@@ -1872,6 +1873,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
                     SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
                     SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
+                    SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with body flap
                 }
                 // === ROLL AXIS CONTROL ===
                 roll_curr = -GetBank(); // GetBank() returns negative for right bank, positive for left bank
