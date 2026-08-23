@@ -1884,10 +1884,10 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     roll_mode = 0; // manual roll control mode
                 }
                 else {
-                    if (abs(roll_rate_curr) > 0.02 && roll_mode != 2) {
+                    if (abs(roll_rate_curr) > 0.1 && roll_mode == 0) {
                         roll_mode = 1; // roll rate null mode
                     }
-                    else {
+                    if (abs(roll_rate_curr) < 0.1 && roll_mode != 2) {
                         roll_tgt = roll_curr; // hold current roll
                         roll_tgt = clamp(roll_tgt, -80 * RAD, +80 * RAD);   // Limit roll to ±80°
                         roll_mode = 2; // roll hold mode
