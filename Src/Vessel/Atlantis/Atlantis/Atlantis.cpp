@@ -1818,10 +1818,10 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     aoa_mode = 0; // manual AOA control mode
                 }
                 else {
-                    if (abs(aoa_rate_curr) > 0.02 && aoa_mode != 2) {
+                    if (abs(aoa_rate_curr) > 0.1 && aoa_mode == 0) {
                         aoa_mode = 1; // AOA rate null mode
                     }
-                    else {
+                    if (abs(aoa_rate_curr) < 0.1 && aoa_mode != 2) {
                         aoa_tgt = aoa_curr; // hold current AOA
                         aoa_tgt = clamp(aoa_tgt, 0 * RAD, 40 * RAD);    // Limit AOA to 0-40°
                         aoa_mode = 2; // AOA hold mode
@@ -1964,11 +1964,12 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
         }
 
         // sprintf(oapiDebugString(), "AOA Target: %+0.3f", aoa_tgt * 57.296);
-        sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
+        // sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
         // sprintf(oapiDebugString(), "Roll Rate: %+0.3f", roll_rate_curr * 57.296);
         // sprintf(oapiDebugString(), "Roll: %+0.3f", roll_curr * 57.296);
         // sprintf(oapiDebugString(), "Roll Target: %+0.3f", roll_tgt * 57.296);
         // sprintf(oapiDebugString(), "Roll Rate Error: %+0.3f", roll_rate_error * 57.296);
+        sprintf(oapiDebugString(), "AOA Mode: %d", aoa_mode);
 		break;
 	}
 
