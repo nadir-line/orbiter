@@ -1664,6 +1664,12 @@ void Atlantis::clbkPostCreation ()
 	EnableOMS (status == 3);
 	SetADCtrlMode (status < 4 ? 0 : 7);
 
+    // set target AOA and bank for reentry
+    if (status >= 4) {
+        aoa_tgt = GetAOA();
+        roll_tgt = GetBank();
+    }
+
 	UpdateMesh ();
 }
 
@@ -1791,6 +1797,8 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 		if (GetAltitude(ALTMODE_GROUND) < 121920 && vert_spd < -10) {
 			EnableRCS(RCS_ROT);
 			SetADCtrlMode(7);
+            aoa_curr = GetAOA();
+            aoa_tgt = aoa_curr;
 			status = 4;
 		}
 		break;
@@ -1801,78 +1809,50 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 // === RCS AND CONTROL SURFACE AUTOPILOT ===
                 // === PITCH AXIS CONTROL ===
                 aoa_curr = GetAOA();
+                aoa_tgt += 5.0 * RAD * aoa_cmd * simdt;
+                aoa_tgt = clamp(aoa_tgt, 0 * RAD, 40 * RAD);    // Limit AOA to 0-40°
+                aoa_error = aoa_tgt - aoa_curr;
+
                 aoa_rate_curr = avel.x;
+                aoa_rate_tgt = 1.0 * aoa_error; // Target rate proportional to error
+                aoa_rate_tgt = clamp(aoa_rate_tgt, -10 * RAD, +10 * RAD); // Limit pitch rate to ±10 deg/s
                 aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
 
-                if (aoa_curr > 40 * RAD) {
-                    aoa_rate_tgt = -5 * RAD; // Target pitch down rate of -5 deg/s
-                }
-                else if (aoa_curr < 0 * RAD) {
-                    aoa_rate_tgt = +5 * RAD; // Target pitch up rate of +5 deg/s
+                if (GetDynPressure() < 1000) {
+                    // Pitch RCS control: counter pitch rate error
+                    SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 15, 0.0, 1.0));
+                    SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 15, 0.0, 1.0));
                 }
                 else {
-                    aoa_rate_tgt = 0.0; // Target pitch rate of 0 deg/s
+                    // Pitch trim: elevons and body flap
+                    elev_tgt = aoa_rate_error * 5.0;
+                    elev_tgt = clamp(elev_tgt, -1.0, +1.0);
+                    elev_trim_tgt += aoa_rate_error * 5.0 * simdt;
+                    elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
+                    SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
+                    SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt);
                 }
-
-                if (abs(aoa_cmd) < 0.05) {
-                    if (GetDynPressure() > 500) {
-                        // Use control surfaces for pitch control
-                        elev_tgt = aoa_rate_error * 10.0;
-                        elev_tgt = clamp(elev_tgt, -1.0, +1.0); // Limit elevator deflection to ±1.0
-                        elev_trim_tgt += aoa_rate_error * 1.0 * simdt; // Adjust elevator trim based on pitch rate error
-                        elev_trim_tgt = clamp(elev_trim_tgt, -1.0, +1.0); // Limit elevator trim to ±1.0
-                        SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
-                        SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt);
-
-                        // Disable RCS for pitch control
-                        SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
-                        SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
-                    }
-                    else {
-                        // Use RCS for pitch control
-                        SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, clamp(+aoa_rate_error * 5.0, 0.0, 1.0));
-                        SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 5.0, 0.0, 1.0));
-
-                        // Disable control surfaces for pitch control
-                        SetControlSurfaceLevel(AIRCTRL_ELEVATOR, 0.0);
-                        SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, 0.0);
-                    }
-                }
-
                 // === ROLL AXIS CONTROL ===
-                roll_curr = -GetBank();
+                roll_curr = -GetBank(); // GetBank() returns negative for right bank, positive for left bank
+                roll_tgt += 5.0 * RAD * roll_cmd * simdt;
+                roll_tgt = clamp(roll_tgt, -80 * RAD, +80 * RAD);   // Limit roll to ±80°
+                roll_error = roll_tgt - roll_curr;
+
                 roll_rate_curr = avel.z;
+                roll_rate_tgt = 1.0 * roll_error;  // Target rate proportional to error
+                roll_rate_tgt = clamp(roll_rate_tgt, -5 * RAD, +5 * RAD); // Limit roll rate to ±5 deg/s
                 roll_rate_error = roll_rate_tgt - roll_rate_curr;
 
-                if (roll_curr > 80 * RAD) {
-                    roll_rate_tgt = -5 * RAD; // Target roll down rate of -5 deg/s
-                }
-                else if (roll_curr < -80 * RAD) {
-                    roll_rate_tgt = +5 * RAD; // Target roll up rate of +5 deg/s
+                if (GetDynPressure() < 500) {
+                    // Roll RCS control: counter roll rate error
+                    SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, clamp(+roll_rate_error * 15, 0.0, 1.0));
+                    SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  clamp(-roll_rate_error * 15, 0.0, 1.0));
                 }
                 else {
-                    roll_rate_tgt = 0.0; // Target roll rate of 0 deg/s
-                }
-
-                if (abs(roll_cmd) < 0.05) {
-                    if (GetDynPressure() > 1000) {
-                        // Use control surfaces for roll control
-                        aileron_tgt = roll_rate_error * 10.0;
-                        aileron_tgt = clamp(aileron_tgt, -1.0, +1.0); // Limit aileron deflection to ±1.0
-                        SetControlSurfaceLevel(AIRCTRL_AILERON, aileron_tgt);
-
-                        // Disable RCS for roll control
-                        SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0.0);
-                        SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);
-                    }
-                    else {
-                        // Use RCS for roll control
-                        SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, clamp(-roll_rate_error * 5.0, 0.0, 1.0));
-                        SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, clamp(+roll_rate_error * 5.0, 0.0, 1.0));
-
-                        // Disable control surfaces for roll control
-                        SetControlSurfaceLevel(AIRCTRL_AILERON, 0.0);
-                    }
+                    // Roll control surfaces: elevons
+                    aileron_tgt = roll_rate_error * 5.0;
+                    aileron_tgt = clamp(aileron_tgt, -1.0, +1.0);
+                    SetControlSurfaceLevel(AIRCTRL_AILERON, aileron_tgt);
                 }
 
                 // === YAW AXIS CONTROL ===
@@ -1894,10 +1874,6 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, 0.0);
                 SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);
                 SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0.0);
-
-                // Command control surfaces to neutral
-                SetControlSurfaceLevel(AIRCTRL_ELEVATOR, 0.0);
-                SetControlSurfaceLevel(AIRCTRL_AILERON, 0.0);
             }
         }
         else { // Mach < 1.0, disable RCS

@@ -446,6 +446,9 @@ private:
     // AOA control
     double aoa_cmd;
     double aoa_curr;
+    double aoa_tgt;
+    double aoa_error;
+
     double aoa_rate_curr;
     double aoa_rate_tgt;
     double aoa_rate_error;
@@ -458,13 +461,19 @@ private:
     // Roll control
     double roll_cmd;
     double roll_curr;
+    double roll_tgt;
+    double roll_error;
+
     double roll_rate_curr;
     double roll_rate_tgt;
     double roll_rate_error;
 
     // Aero surfaces
+    double elev_trim_curr;
     double elev_trim_tgt;
+    double elev_curr;
     double elev_tgt;
+    double aileron_curr;
     double aileron_tgt;
 
     // Miscellaneous
