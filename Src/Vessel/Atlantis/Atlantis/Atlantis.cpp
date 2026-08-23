@@ -1839,13 +1839,13 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 
                     if (GetDynPressure() < 3000) {
                         // Pitch RCS control: counter pitch rate error
-                        SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 15, 0.0, 1.0));
-                        SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 15, 0.0, 1.0));
+                        SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 50, 0.0, 1.0));
+                        SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 50, 0.0, 1.0));
                     }
                     // Pitch trim: elevons and body flap
                     elev_tgt = aoa_rate_error * 5.0;
                     elev_tgt = clamp(elev_tgt, -1.0, +1.0);
-                    elev_trim_tgt += aoa_rate_error * 5.0 * simdt;
+                    elev_trim_tgt += aoa_rate_error * 5.0;
                     elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
                     SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
                     SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt);
@@ -1862,8 +1862,8 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 
                     if (GetDynPressure() < 3000) {
                         // Pitch RCS control: counter pitch rate error
-                        SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 15, 0.0, 1.0));
-                        SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 15, 0.0, 1.0));
+                        SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 50, 0.0, 1.0));
+                        SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 50, 0.0, 1.0));
                     }
                     // Pitch trim: elevons and body flap
                     elev_tgt = aoa_rate_error * 5.0;
@@ -1905,8 +1905,8 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 
                     if (GetDynPressure() < 5000) {
                         // Roll RCS control: counter roll rate error
-                        SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, clamp(+roll_rate_error * 15, 0.0, 1.0));
-                        SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  clamp(-roll_rate_error * 15, 0.0, 1.0));
+                        SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, clamp(+roll_rate_error * 50, 0.0, 1.0));
+                        SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  clamp(-roll_rate_error * 50, 0.0, 1.0));
                     }
                     else {
                         // Roll control surfaces: elevons
@@ -1923,8 +1923,8 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 
                     if (GetDynPressure() < 5000) {
                         // Roll RCS control: counter roll rate error
-                        SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, clamp(+roll_rate_error * 15, 0.0, 1.0));
-                        SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  clamp(-roll_rate_error * 15, 0.0, 1.0));
+                        SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, clamp(+roll_rate_error * 50, 0.0, 1.0));
+                        SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  clamp(-roll_rate_error * 50, 0.0, 1.0));
                     }
                     else {
                         // Roll control surfaces: elevons
