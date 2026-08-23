@@ -444,6 +444,8 @@ private:
     bool dap_entry_enabled; // flag for DAP entry enable
 
     // AOA control
+    int aoa_mode; // 0=off, 1=arm, 2=on
+
     double aoa_cmd;
     double aoa_curr;
     double aoa_tgt;
@@ -459,6 +461,8 @@ private:
     double yaw_rate_error;
 
     // Roll control
+    int roll_mode; // 0=off, 1=arm, 2=on
+
     double roll_cmd;
     double roll_curr;
     double roll_tgt;
