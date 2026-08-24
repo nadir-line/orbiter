@@ -1843,9 +1843,9 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                         SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 50, 0.0, 1.0));
                     }
                     // Pitch trim: elevons and body flap
-                    elev_tgt = aoa_rate_error * 5.0;
+                    elev_tgt = aoa_rate_error * 0.5;
                     elev_tgt = clamp(elev_tgt, -1.0, +1.0);
-                    elev_trim_tgt += aoa_rate_error * 5.0;
+                    elev_trim_tgt = aoa_tgt * 0.7; // Body flap deflection proportional to AOA target
                     elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
                     SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
                     SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
@@ -1867,9 +1867,9 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                         SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 50, 0.0, 1.0));
                     }
                     // Pitch trim: elevons and body flap
-                    elev_tgt = aoa_rate_error * 5.0;
+                    elev_tgt = aoa_rate_error * 0.5;
                     elev_tgt = clamp(elev_tgt, -1.0, +1.0);
-                    elev_trim_tgt += aoa_rate_error * 5.0 * simdt;
+                    elev_trim_tgt = aoa_tgt * 0.7; // Body flap deflection proportional to AOA target
                     elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
                     SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
                     SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
