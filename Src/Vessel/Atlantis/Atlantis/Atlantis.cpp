@@ -1812,9 +1812,13 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 aoa_error = aoa_tgt - aoa_curr;
                 aoa_rate_curr = avel.x;
                 aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
+                elev_curr = GetControlSurfaceLevel(AIRCTRL_ELEVATOR);
+                elev_error = elev_tgt - elev_curr;
+                elev_trim_curr = GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM);
+                elev_trim_error = elev_trim_tgt - elev_trim_curr;
 
                 // AOA MODE SHIFTING: 0 = manual, 1 = AOA rate null, 2 = AOA hold
-                if (abs(aoa_cmd) > 0.05) {
+                if (abs(aoa_cmd) > 0.05 || abs(elev_error) > 0.05) {
                     aoa_mode = 0; // manual AOA control mode
                 }
                 else {
@@ -1832,7 +1836,8 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     // Disable automated commands
                     SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
                     SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
-                    SetControlSurfaceLevel(AIRCTRL_ELEVATOR, 0.0);
+                    elev_tgt = 0.0;
+                    SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
                 }
                 if (aoa_mode == 1) { // AOA rate null mode
                     aoa_rate_tgt = 0.0;
@@ -1880,9 +1885,11 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 roll_error = roll_tgt - roll_curr;
                 roll_rate_curr = avel.z;
                 roll_rate_error = roll_rate_tgt - roll_rate_curr;
+                aileron_curr = GetControlSurfaceLevel(AIRCTRL_AILERON);
+                aileron_error = aileron_tgt - aileron_curr;
 
                 // ROLL MODE SHIFTING: 0 = manual, 1 = roll rate null, 2 = roll hold
-                if (abs(roll_cmd) > 0.05) {
+                if (abs(roll_cmd) > 0.05 || abs(aileron_error) > 0.05) {
                     roll_mode = 0; // manual roll control mode
                 }
                 else {
@@ -1900,7 +1907,8 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     // Disable automated commands
                     SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);
                     SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0.0);
-                    SetControlSurfaceLevel(AIRCTRL_AILERON, 0.0);
+                    aileron_tgt = 0.0;
+                    SetControlSurfaceLevel(AIRCTRL_AILERON, aileron_tgt);
                 }
                 if (roll_mode == 1) { // roll rate null mode
                     roll_rate_tgt = 0.0;

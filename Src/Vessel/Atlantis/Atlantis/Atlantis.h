@@ -475,10 +475,13 @@ private:
     // Aero surfaces
     double elev_trim_curr;
     double elev_trim_tgt;
+    double elev_trim_error;
     double elev_curr;
     double elev_tgt;
+    double elev_error;
     double aileron_curr;
     double aileron_tgt;
+    double aileron_error;
 
     // Miscellaneous
 	bool reset_sat;
