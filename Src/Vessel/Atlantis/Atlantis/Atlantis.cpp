@@ -1822,10 +1822,10 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     aoa_mode = 0; // manual AOA control mode
                 }
                 else {
-                    if (abs(aoa_rate_curr) > 0.1 && aoa_mode == 0) {
+                    if (abs(aoa_rate_curr) > 0.05 && aoa_mode == 0) {
                         aoa_mode = 1; // AOA rate null mode
                     }
-                    if (abs(aoa_rate_curr) < 0.1 && aoa_mode != 2) {
+                    if (abs(aoa_rate_curr) <= 0.05 && aoa_mode != 2) {
                         aoa_tgt = aoa_curr; // hold current AOA
                         aoa_tgt = clamp(aoa_tgt, 0 * RAD, 40 * RAD);    // Limit AOA to 0-40°
                         aoa_mode = 2; // AOA hold mode
@@ -1893,10 +1893,10 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     roll_mode = 0; // manual roll control mode
                 }
                 else {
-                    if (abs(roll_rate_curr) > 0.1 && roll_mode == 0) {
+                    if (abs(roll_rate_curr) > 0.05 && roll_mode == 0) {
                         roll_mode = 1; // roll rate null mode
                     }
-                    if (abs(roll_rate_curr) < 0.1 && roll_mode != 2) {
+                    if (abs(roll_rate_curr) <= 0.05 && roll_mode != 2) {
                         roll_tgt = roll_curr; // hold current roll
                         roll_tgt = clamp(roll_tgt, -80 * RAD, +80 * RAD);   // Limit roll to ±80°
                         roll_mode = 2; // roll hold mode
