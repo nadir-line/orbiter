@@ -441,8 +441,10 @@ private:
     // Reentry control parameters
 
     // Digital autopilot
-    bool dap_entry_enabled; // flag for DAP entry enable
-
+    // DAP constants
+    const double cmd_null_zone = 0.05; // command null zone for DAP control
+    const double rate_null_hold_xfr_val = 0.01; // switchover value for rate control
+    bool dap_entry_enabled; // flag for DAP entry enabled
     // AOA control
     int aoa_mode; // 0=off, 1=arm, 2=on
 

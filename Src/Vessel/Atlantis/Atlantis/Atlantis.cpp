@@ -1818,14 +1818,14 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 elev_trim_error = elev_trim_tgt - elev_trim_curr;
 
                 // AOA MODE SHIFTING: 0 = manual, 1 = AOA rate null, 2 = AOA hold
-                if (abs(aoa_cmd) > 0.05 || abs(elev_error) > 0.05) {
+                if (abs(aoa_cmd) > cmd_null_zone || abs(elev_error) > cmd_null_zone) {
                     aoa_mode = 0; // manual AOA control mode
                 }
                 else {
-                    if (abs(aoa_rate_curr) > 0.05 && aoa_mode == 0) {
+                    if (abs(aoa_rate_curr) > rate_null_hold_xfr_val && aoa_mode == 0) {
                         aoa_mode = 1; // AOA rate null mode
                     }
-                    if (abs(aoa_rate_curr) <= 0.05 && aoa_mode != 2) {
+                    if (abs(aoa_rate_curr) <= rate_null_hold_xfr_val && aoa_mode != 2) {
                         aoa_tgt = aoa_curr; // hold current AOA
                         aoa_tgt = clamp(aoa_tgt, 0 * RAD, 40 * RAD);    // Limit AOA to 0-40°
                         aoa_mode = 2; // AOA hold mode
@@ -1842,7 +1842,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 if (aoa_mode == 1) { // AOA rate null mode
                     aoa_rate_tgt = 0.0;
 
-                    if (GetDynPressure() < 3000) {
+                    if (GetDynPressure() < 2000) {
                         // Pitch RCS control: counter pitch rate error
                         SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 50, 0.0, 1.0));
                         SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 50, 0.0, 1.0));
@@ -1866,7 +1866,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     aoa_rate_tgt = clamp(aoa_rate_tgt, -10 * RAD, +10 * RAD); // Limit pitch rate to ±10 deg/s
                     aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
 
-                    if (GetDynPressure() < 3000) {
+                    if (GetDynPressure() < 2000) {
                         // Pitch RCS control: counter pitch rate error
                         SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 50, 0.0, 1.0));
                         SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 50, 0.0, 1.0));
@@ -1889,14 +1889,14 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 aileron_error = aileron_tgt - aileron_curr;
 
                 // ROLL MODE SHIFTING: 0 = manual, 1 = roll rate null, 2 = roll hold
-                if (abs(roll_cmd) > 0.05 || abs(aileron_error) > 0.05) {
+                if (abs(roll_cmd) > cmd_null_zone || abs(aileron_error) > cmd_null_zone) {
                     roll_mode = 0; // manual roll control mode
                 }
                 else {
-                    if (abs(roll_rate_curr) > 0.05 && roll_mode == 0) {
+                    if (abs(roll_rate_curr) > rate_null_hold_xfr_val && roll_mode == 0) {
                         roll_mode = 1; // roll rate null mode
                     }
-                    if (abs(roll_rate_curr) <= 0.05 && roll_mode != 2) {
+                    if (abs(roll_rate_curr) <= rate_null_hold_xfr_val && roll_mode != 2) {
                         roll_tgt = roll_curr; // hold current roll
                         roll_tgt = clamp(roll_tgt, -80 * RAD, +80 * RAD);   // Limit roll to ±80°
                         roll_mode = 2; // roll hold mode
@@ -1913,7 +1913,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 if (roll_mode == 1) { // roll rate null mode
                     roll_rate_tgt = 0.0;
 
-                    if (GetDynPressure() < 5000) {
+                    if (GetDynPressure() < 2000) {
                         // Roll RCS control: counter roll rate error
                         SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, clamp(+roll_rate_error * 50, 0.0, 1.0));
                         SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  clamp(-roll_rate_error * 50, 0.0, 1.0));
@@ -1931,7 +1931,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     roll_rate_tgt = 1.0 * roll_error;  // Target rate proportional to error
                     roll_rate_tgt = clamp(roll_rate_tgt, -5 * RAD, +5 * RAD); // Limit roll rate to ±5 deg/s
 
-                    if (GetDynPressure() < 5000) {
+                    if (GetDynPressure() < 2000) {
                         // Roll RCS control: counter roll rate error
                         SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, clamp(+roll_rate_error * 50, 0.0, 1.0));
                         SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  clamp(-roll_rate_error * 50, 0.0, 1.0));
