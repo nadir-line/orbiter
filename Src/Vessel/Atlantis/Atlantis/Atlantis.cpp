@@ -2297,7 +2297,7 @@ bool Atlantis::clbkLoadVC (int id)
 		mesh_vc,            // nmesh
 		GRP_VirtualHUD_VC,  // ngroup
 		{0,0,0},            // hudcnt (to be filled)
-		0.17                // size
+		0.185               // size
 	};
 	//static VCMFDSPEC mfds = {
 	//	mesh_vc, 0
@@ -2337,7 +2337,7 @@ bool Atlantis::clbkLoadVC (int id)
 
 	switch (id) {
 	case 0: // commander position
-		SetCameraOffset (_V(-0.67,2.55,14.65));
+		SetCameraOffset (_V(-0.67,2.58,14.65));
 		SetCameraDefaultDirection (_V(0,0,1));
 		SetCameraMovement (_V(0,0,0.3), 0, 0, _V(-0.3,0,0), 75*RAD, -5*RAD, _V(0.3,0,0), -20*RAD, -27*RAD);
 		huds.hudcnt = _V(-0.671257, 2.523535, 15.0);
@@ -2349,7 +2349,7 @@ bool Atlantis::clbkLoadVC (int id)
 		ok = true;
 		break;
 	case 1: // pilot position
-		SetCameraOffset (_V(0.67,2.55,14.65));
+		SetCameraOffset (_V(0.67,2.58,14.65));
 		SetCameraDefaultDirection (_V(0,0,1));
 		SetCameraMovement (_V(0,0,0.3), 0, 0, _V(-0.3,0,0), 20*RAD, -27*RAD, _V(0.3,0,0), -75*RAD, -5*RAD);
 		huds.hudcnt = _V(0.671257, 2.523535, 15.0);
