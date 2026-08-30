@@ -1842,7 +1842,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 if (aoa_mode == 1) { // AOA rate null mode
                     aoa_rate_tgt = 0.0;
 
-                    if (GetDynPressure() < 2000) {
+                    if (GetDynPressure() < pitch_rcs_dynp_cutoff) {
                         // Pitch RCS control: counter pitch rate error
                         SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 50, 0.0, 1.0));
                         SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 50, 0.0, 1.0));
@@ -1866,7 +1866,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     aoa_rate_tgt = clamp(aoa_rate_tgt, -10 * RAD, +10 * RAD); // Limit pitch rate to ±10 deg/s
                     aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
 
-                    if (GetDynPressure() < 2000) {
+                    if (GetDynPressure() < pitch_rcs_dynp_cutoff) {
                         // Pitch RCS control: counter pitch rate error
                         SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 50, 0.0, 1.0));
                         SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 50, 0.0, 1.0));
@@ -1913,7 +1913,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 if (roll_mode == 1) { // roll rate null mode
                     roll_rate_tgt = 0.0;
 
-                    if (GetDynPressure() < 2000) {
+                    if (GetDynPressure() < roll_rcs_dynp_cutoff) {
                         // Roll RCS control: counter roll rate error
                         SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, clamp(+roll_rate_error * 50, 0.0, 1.0));
                         SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  clamp(-roll_rate_error * 50, 0.0, 1.0));
@@ -1931,7 +1931,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     roll_rate_tgt = 1.0 * roll_error;  // Target rate proportional to error
                     roll_rate_tgt = clamp(roll_rate_tgt, -5 * RAD, +5 * RAD); // Limit roll rate to ±5 deg/s
 
-                    if (GetDynPressure() < 2000) {
+                    if (GetDynPressure() < roll_rcs_dynp_cutoff) {
                         // Roll RCS control: counter roll rate error
                         SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, clamp(+roll_rate_error * 50, 0.0, 1.0));
                         SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT,  clamp(-roll_rate_error * 50, 0.0, 1.0));
@@ -1977,10 +1977,19 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
         }
         else { // Mach < 1.0, disable RCS
             EnableRCS(RCS_NONE);
+            SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
+            SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
+            SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT, 0.0);
+            SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, 0.0);
+            SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);
+            SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0.0);
             // Neutral control surfaces (except elevator trim)
             SetControlSurfaceLevel(AIRCTRL_FLAP, 0.0);
             SetControlSurfaceLevel(AIRCTRL_ELEVATOR, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
             SetControlSurfaceLevel(AIRCTRL_AILERON, 0.0);
+
+            // Disable DAP entry mode when Mach < 1.0
+            dap_entry_enabled = false;
         }
 
         // sprintf(oapiDebugString(), "AOA Target: %+0.3f", aoa_tgt * 57.296);
@@ -1989,7 +1998,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
         // sprintf(oapiDebugString(), "Roll: %+0.3f", roll_curr * 57.296);
         // sprintf(oapiDebugString(), "Roll Target: %+0.3f", roll_tgt * 57.296);
         // sprintf(oapiDebugString(), "Roll Rate Error: %+0.3f", roll_rate_error * 57.296);
-        sprintf(oapiDebugString(), "AOA Mode: %d", aoa_mode);
+        // sprintf(oapiDebugString(), "AOA Mode: %d", aoa_mode);
 		break;
 	}
 
