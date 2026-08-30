@@ -266,7 +266,7 @@ Atlantis::Atlantis (OBJHANDLE hObj, int fmodel)
 	arm_moved       = arm_scheduled = false;
 	bManualSeparate = false;
 	dap_entry_enabled     = true;
-	aoa_cmd         = 0.0;
+	pitch_cmd         = 0.0;
 	roll_cmd= 0.0;
 	ofs_sts_sat     = _V(0,0,0);
 	do_eva          = false;
@@ -1692,7 +1692,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 	ascap->Update (simt);
 
 	if (!dap_entry_enabled || status < 4) {
-		aoa_cmd = 0.0;
+		pitch_cmd = 0.0;
 		roll_cmd = 0.0;
 	}
 
@@ -1803,52 +1803,58 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 		}
 		break;
 	case 4: // reentry
-        // Active reentry autopilot: Mach > 1.0 and DAP entry mode enabled
-        if (GetMachNumber() > 1.0) {
+        // Active reentry autopilot: Mach > 0.1 and DAP entry mode enabled
+        if (GetMachNumber() > 0.1 && GetAltitude(ALTMODE_GROUND) >= 100) {
             if (dap_entry_enabled) {
                 // === RCS AND CONTROL SURFACE AUTOPILOT ===
                 // === PITCH AXIS CONTROL ===
+                pitch_rate_curr = avel.x;
+                pitch_rate_error = pitch_rate_tgt - pitch_rate_curr;
+                pitch_curr = GetPitch();
+                pitch_error = pitch_tgt - pitch_curr;
+
                 aoa_curr = GetAOA();
                 aoa_error = aoa_tgt - aoa_curr;
-                aoa_rate_curr = avel.x;
-                aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
+
                 elev_curr = GetControlSurfaceLevel(AIRCTRL_ELEVATOR);
                 elev_error = elev_tgt - elev_curr;
                 elev_trim_curr = GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM);
                 elev_trim_error = elev_trim_tgt - elev_trim_curr;
 
-                // AOA MODE SHIFTING: 0 = manual, 1 = AOA rate null, 2 = AOA hold
-                if (abs(aoa_cmd) > cmd_null_zone || abs(elev_error) > cmd_null_zone) {
-                    aoa_mode = 0; // manual AOA control mode
+                // PITCH MODE SHIFTING: 0 = manual, 1 = pitch rate null, 2 = pitch hold
+                if (abs(pitch_cmd) > cmd_null_zone || abs(elev_error) > cmd_null_zone) {
+                    pitch_mode = 0; // manual pitch control mode
                 }
                 else {
-                    if (abs(aoa_rate_curr) > rate_null_hold_xfr_val && aoa_mode == 0) {
-                        aoa_mode = 1; // AOA rate null mode
+                    if (abs(pitch_rate_curr) > rate_null_hold_xfr_val && pitch_mode == 0) {
+                        pitch_mode = 1; // pitch rate null mode
                     }
-                    if (abs(aoa_rate_curr) <= rate_null_hold_xfr_val && aoa_mode != 2) {
-                        aoa_tgt = aoa_curr; // hold current AOA
+                    if (abs(pitch_rate_curr) <= rate_null_hold_xfr_val && pitch_mode != 2) {
+                        pitch_tgt = pitch_curr; // set current pitch as pitch target
+                        pitch_tgt = clamp(pitch_tgt, -40 * RAD, +40 * RAD);   // Limit pitch to ±40°
+                        aoa_tgt = aoa_curr; // set current AOA as AOA target
                         aoa_tgt = clamp(aoa_tgt, 0 * RAD, 40 * RAD);    // Limit AOA to 0-40°
-                        aoa_mode = 2; // AOA hold mode
+                        pitch_mode = 2; // pitch hold mode
                     }
                 }
 
-                if (aoa_mode == 0) { // manual AOA control mode
+                if (pitch_mode == 0) { // manual pitch control mode
                     // Disable automated commands
                     SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
                     SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
                     elev_tgt = 0.0;
                     SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
                 }
-                if (aoa_mode == 1) { // AOA rate null mode
-                    aoa_rate_tgt = 0.0;
+                if (pitch_mode == 1) { // pitch rate null mode
+                    pitch_rate_tgt = 0.0;
 
                     if (GetDynPressure() < pitch_rcs_dynp_cutoff) {
                         // Pitch RCS control: counter pitch rate error
-                        SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 50, 0.0, 1.0));
-                        SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 50, 0.0, 1.0));
+                        SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+pitch_rate_error * 50, 0.0, 1.0));
+                        SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-pitch_rate_error * 50, 0.0, 1.0));
                     }
                     // Pitch trim: elevons and body flap
-                    elev_tgt = aoa_rate_error * 0.5;
+                    elev_tgt = pitch_rate_error * 0.5;
                     elev_tgt = clamp(elev_tgt, -1.0, +1.0);
                     elev_trim_tgt = aoa_tgt * 0.7; // Body flap deflection proportional to AOA target
                     elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
@@ -1856,29 +1862,43 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
                     SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with body flap
                 }
-                if (aoa_mode == 2) { // AOA hold mode
-                    aoa_curr = GetAOA();
+                if (pitch_mode == 2) { // pitch/AOA hold mode
+                    pitch_tgt = clamp(pitch_tgt, -40 * RAD, +40 * RAD);   // Limit pitch to ±40°
                     aoa_tgt = clamp(aoa_tgt, 0 * RAD, 40 * RAD);    // Limit AOA to 0-40°
-                    aoa_error = aoa_tgt - aoa_curr;
 
-                    aoa_rate_curr = avel.x;
-                    aoa_rate_tgt = 1.0 * aoa_error; // Target rate proportional to error
-                    aoa_rate_tgt = clamp(aoa_rate_tgt, -10 * RAD, +10 * RAD); // Limit pitch rate to ±10 deg/s
-                    aoa_rate_error = aoa_rate_tgt - aoa_rate_curr;
+                    if (aoa_curr > 20 * RAD) { // If AOA target is above 20°, use AOA error for pitch rate target
+                        pitch_rate_tgt = 1.0 * aoa_error; // Target rate proportional to error
+
+                        // Pitch trim: elevons and body flap
+                        elev_tgt = pitch_rate_error * 0.5;
+                        elev_tgt = clamp(elev_tgt, -1.0, +1.0);
+                        elev_trim_tgt = aoa_tgt * 0.7; // Body flap deflection proportional to target
+                        elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
+                        SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with body flap
+                    }
+                    else { // If AOA target is below 20°, use pitch error for pitch rate target
+                        pitch_rate_tgt = 1.0 * pitch_error; // Target rate proportional to error
+
+                        // Pitch trim: elevons and body flap
+                        elev_tgt = pitch_rate_error * 0.5 + elev_trim_tgt;
+                        elev_tgt = clamp(elev_tgt, -1.0, +1.0);
+                        elev_trim_tgt += pitch_error * simdt; // Integral term for pitch trim to maintain pitch hold at low AOA
+                        elev_trim_tgt = clamp(elev_trim_tgt, -0.3, 0.3); // Allow slight negative trim for low AOA
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt); // Use elevons for pitch trim at low AOA
+                        SetControlSurfaceLevel(AIRCTRL_FLAP, 0.0); // body flap zeroed at low AOA
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with body flap
+                    }
+
+                    pitch_rate_tgt = clamp(pitch_rate_tgt, -10 * RAD, +10 * RAD); // Limit pitch rate to ±10 deg/s
+                    pitch_rate_error = pitch_rate_tgt - pitch_rate_curr;
 
                     if (GetDynPressure() < pitch_rcs_dynp_cutoff) {
                         // Pitch RCS control: counter pitch rate error
-                        SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+aoa_rate_error * 50, 0.0, 1.0));
-                        SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-aoa_rate_error * 50, 0.0, 1.0));
+                        SetThrusterGroupLevel(THGROUP_ATT_PITCHUP,   clamp(+pitch_rate_error * 50, 0.0, 1.0));
+                        SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, clamp(-pitch_rate_error * 50, 0.0, 1.0));
                     }
-                    // Pitch trim: elevons and body flap
-                    elev_tgt = aoa_rate_error * 0.5;
-                    elev_tgt = clamp(elev_tgt, -1.0, +1.0);
-                    elev_trim_tgt = aoa_tgt * 0.7; // Body flap deflection proportional to AOA target
-                    elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
-                    SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
-                    SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
-                    SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with body flap
                 }
                 // === ROLL AXIS CONTROL ===
                 roll_curr = -GetBank(); // GetBank() returns negative for right bank, positive for left bank
@@ -1950,9 +1970,25 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 yaw_rate_tgt = clamp(yaw_rate_tgt, -10 * RAD, +10 * RAD); // Limit yaw rate to ±10 deg/s
                 yaw_rate_error = yaw_rate_tgt - yaw_rate_curr;
 
-                // Yaw RCS control: drive slip angle to zero
-                SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT,  clamp(-yaw_rate_error * 5.0, 0.0, 1.0));
-                SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, clamp(+yaw_rate_error * 5.0, 0.0, 1.0));
+                // Use rudder for yaw control below Mach 5.0
+                if (GetMachNumber() < 5.0) {
+                    SetControlSurfaceLevel(AIRCTRL_RUDDER, clamp(yaw_rate_error * 5.0, -1.0, +1.0));
+                }
+                else {
+                    SetControlSurfaceLevel(AIRCTRL_RUDDER, 0.0);
+                }
+
+                // Yaw RCS control above Mach 1.0, otherwise disable RCS yaw control
+                if (GetMachNumber() > 1.0) {
+                    // Yaw RCS control: drive slip angle to zero
+                    SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT,  clamp(-yaw_rate_error * 5.0, 0.0, 1.0));
+                    SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, clamp(+yaw_rate_error * 5.0, 0.0, 1.0));
+                }
+                else {
+                    SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT,  0.0);
+                    SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, 0.0);
+                    EnableRCS(RCS_NONE);
+                }
             }
             // Passive reentry: no autopilot active
             else {
@@ -1975,7 +2011,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 }
             }
         }
-        else { // Mach < 1.0, disable RCS
+        else { // Mach < 0.1, disable RCS
             EnableRCS(RCS_NONE);
             SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
             SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
@@ -1988,17 +2024,18 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
             SetControlSurfaceLevel(AIRCTRL_ELEVATOR, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
             SetControlSurfaceLevel(AIRCTRL_AILERON, 0.0);
 
-            // Disable DAP entry mode when Mach < 1.0
+            // Disable DAP entry mode when Mach < 0.1
             dap_entry_enabled = false;
         }
 
         // sprintf(oapiDebugString(), "AOA Target: %+0.3f", aoa_tgt * 57.296);
-        // sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
+        sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
         // sprintf(oapiDebugString(), "Roll Rate: %+0.3f", roll_rate_curr * 57.296);
         // sprintf(oapiDebugString(), "Roll: %+0.3f", roll_curr * 57.296);
         // sprintf(oapiDebugString(), "Roll Target: %+0.3f", roll_tgt * 57.296);
         // sprintf(oapiDebugString(), "Roll Rate Error: %+0.3f", roll_rate_error * 57.296);
-        // sprintf(oapiDebugString(), "AOA Mode: %d", aoa_mode);
+        // sprintf(oapiDebugString(), "AOA Mode: %d", pitch_mode);
+        // sprintf(oapiDebugString(), "Yaw Rate: %+0.3f", yaw_rate_curr * 57.296);
 		break;
 	}
 
@@ -2601,11 +2638,11 @@ int Atlantis::clbkConsumeBufferedKey (DWORD key, bool down, char *kstate)
 			switch (key) {
 			case OAPI_KEY_NUMPAD2:
 				// Numpad 2: pitch up (increase AOA)
-				aoa_cmd = down ? +1.0 : 0.0;
+				pitch_cmd = down ? +1.0 : 0.0;
 				return 1;  // KEY CONSUMED
 			case OAPI_KEY_NUMPAD8:
 				// Numpad 8: pitch down (decrease AOA)
-				aoa_cmd = down ? -1.0 : 0.0;
+				pitch_cmd = down ? -1.0 : 0.0;
 				return 1;  // KEY CONSUMED
 			case OAPI_KEY_NUMPAD6:
 				// Numpad 6: roll right

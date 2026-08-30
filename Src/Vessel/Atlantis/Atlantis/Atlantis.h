@@ -449,17 +449,22 @@ private:
     const double roll_rcs_dynp_cutoff = 2000.0; // dynamic pressure cutoff for roll RCS control
 
     bool dap_entry_enabled; // flag for DAP entry enabled
-    // AOA control
-    int aoa_mode; // 0=off, 1=arm, 2=on
+    // Pitch control
+    int pitch_mode; // 0=off, 1=arm, 2=on
 
-    double aoa_cmd;
+    double pitch_cmd;
+
+    double pitch_curr;
+    double pitch_tgt;
+    double pitch_error;
+
     double aoa_curr;
     double aoa_tgt;
     double aoa_error;
 
-    double aoa_rate_curr;
-    double aoa_rate_tgt;
-    double aoa_rate_error;
+    double pitch_rate_curr;
+    double pitch_rate_tgt;
+    double pitch_rate_error;
 
     // Yaw control
     double yaw_rate_curr;
