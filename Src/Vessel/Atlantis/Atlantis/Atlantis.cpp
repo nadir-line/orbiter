@@ -1884,11 +1884,11 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                         // Pitch trim: elevons and body flap
                         elev_tgt = pitch_rate_error * 0.5 + elev_trim_tgt;
                         elev_tgt = clamp(elev_tgt, -1.0, +1.0);
-                        elev_trim_tgt += (pitch_error * 1.5 + pitch_rate_curr * 0.05) * simdt; // Integral term for pitch trim to maintain pitch hold at low AOA
-                        elev_trim_tgt = clamp(elev_trim_tgt, -0.3, 0.3); // Allow slight negative trim for low AOA
+                        elev_trim_tgt = pitch_error * 3.0 - spdb_proc * 0.2 + gear_proc * 0.1;
+                        elev_trim_tgt = clamp(elev_trim_tgt, -0.5, 0.5); // Allow half negative/positive trim for low AOA
                         SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt); // Use elevons for pitch trim at low AOA
                         SetControlSurfaceLevel(AIRCTRL_FLAP, 0.0); // body flap zeroed at low AOA
-                        SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with body flap
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with actual trim deflection
                     }
 
                     pitch_rate_tgt = clamp(pitch_rate_tgt, -10 * RAD, +10 * RAD); // Limit pitch rate to ±10 deg/s
