@@ -443,7 +443,7 @@ private:
     // Digital autopilot
     // DAP constants
     const double cmd_null_zone = 0.05; // command null zone for DAP control
-    const double rate_null_hold_xfr_val = 0.01; // switchover value for rate control
+    const double rate_null_hold_xfr_val = 0.05; // switchover value for rate control
 
     const double pitch_rcs_dynp_cutoff = 1000.0; // dynamic pressure cutoff for pitch RCS control
     const double roll_rcs_dynp_cutoff = 2000.0; // dynamic pressure cutoff for roll RCS control
