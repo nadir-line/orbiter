@@ -1866,7 +1866,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     pitch_tgt = clamp(pitch_tgt, -40 * RAD, +40 * RAD);   // Limit pitch to ±40°
                     aoa_tgt = clamp(aoa_tgt, 0 * RAD, 40 * RAD);    // Limit AOA to 0-40°
 
-                    if (aoa_curr > 20 * RAD) { // If AOA target is above 20°, use AOA error for pitch rate target
+                    if (aoa_curr > 20 * RAD || abs(roll_curr) > 30 * RAD) { // If AOA target is above 20° or roll is above 30°, use AOA error for pitch rate target
                         pitch_rate_tgt = 1.0 * aoa_error; // Target rate proportional to error
 
                         // Pitch trim: elevons and body flap
