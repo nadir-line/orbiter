@@ -1966,7 +1966,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 
                 // === YAW AXIS CONTROL ===
                 yaw_rate_curr = -avel.y;
-                yaw_rate_tgt = -0.1 * (beta + yaw_rate_curr) + aoa_curr * roll_rate_curr;
+                yaw_rate_tgt = -1.0 * (beta + 3.0 * yaw_rate_curr) + aoa_curr * roll_rate_curr;
                 yaw_rate_tgt = clamp(yaw_rate_tgt, -10 * RAD, +10 * RAD); // Limit yaw rate to ±10 deg/s
                 yaw_rate_error = yaw_rate_tgt - yaw_rate_curr;
 
@@ -1981,8 +1981,8 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 // Yaw RCS control above Mach 1.0, otherwise disable RCS yaw control
                 if (GetMachNumber() > 1.0) {
                     // Yaw RCS control: drive slip angle to zero
-                    SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT,  clamp(-yaw_rate_error * 5.0, 0.0, 1.0));
-                    SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, clamp(+yaw_rate_error * 5.0, 0.0, 1.0));
+                    SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT,  clamp(-yaw_rate_error * 20.0, 0.0, 1.0));
+                    SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, clamp(+yaw_rate_error * 20.0, 0.0, 1.0));
                 }
                 else {
                     SetThrusterGroupLevel(THGROUP_ATT_YAWLEFT,  0.0);
