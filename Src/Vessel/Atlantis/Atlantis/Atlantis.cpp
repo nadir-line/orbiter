@@ -2618,7 +2618,7 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
     // show DAP/CSS status when reentry DAP mode is active
 	if (status >= 4 && dap_entry_enabled) {
 		skp->SetTextAlign (oapi::Sketchpad::CENTER, oapi::Sketchpad::BASELINE);
-		skp->Text (cx, cy-100, "DAP CSS", 7);
+		skp->Text (cx-120, cy+150, "CSS", 3);
 	}
 
 	// show speedbrake position indicator in the lower-right HUD area
