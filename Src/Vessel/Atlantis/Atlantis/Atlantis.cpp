@@ -1829,7 +1829,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     if (abs(pitch_rate_curr) > rate_null_hold_xfr_val && pitch_mode == 0) {
                         pitch_mode = 1; // pitch rate null mode
                     }
-                    if (abs(pitch_rate_curr) <= rate_null_hold_xfr_val && pitch_mode != 2) {
+                    if (abs(pitch_rate_curr) <= rate_null_hold_xfr_val) {
                         pitch_tgt = pitch_curr; // set current pitch as pitch target
                         pitch_tgt = clamp(pitch_tgt, -40 * RAD, +40 * RAD);   // Limit pitch to ±40°
                         aoa_tgt = aoa_curr; // set current AOA as AOA target
@@ -1856,8 +1856,14 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     // Pitch trim: elevons and body flap
                     elev_tgt = pitch_rate_error * 0.5;
                     elev_tgt = clamp(elev_tgt, -1.0, +1.0);
-                    elev_trim_tgt = aoa_tgt * 0.7; // Body flap deflection proportional to AOA target
-                    elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
+                    if (aoa_curr > 20 * RAD) {
+                        elev_trim_tgt = aoa_tgt * 0.7; // Body flap deflection proportional to AOA target
+                        elev_trim_tgt = clamp(elev_trim_tgt, 0.0, 1.0);
+                    }
+                    else {
+                        elev_trim_tgt = -spdb_proc * 0.25 + gear_proc * 0.1;
+                        elev_trim_tgt = clamp(elev_trim_tgt, -0.5, 0.5); // Allow half negative/positive trim for low AOA
+                    }
                     SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
                     SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
                     SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with body flap
@@ -2029,13 +2035,15 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
         }
 
         // sprintf(oapiDebugString(), "AOA Target: %+0.3f", aoa_tgt * 57.296);
-        sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
+        // sprintf(oapiDebugString(), "Beta: %+0.3f", beta * 57.296);
         // sprintf(oapiDebugString(), "Roll Rate: %+0.3f", roll_rate_curr * 57.296);
         // sprintf(oapiDebugString(), "Roll: %+0.3f", roll_curr * 57.296);
         // sprintf(oapiDebugString(), "Roll Target: %+0.3f", roll_tgt * 57.296);
         // sprintf(oapiDebugString(), "Roll Rate Error: %+0.3f", roll_rate_error * 57.296);
-        // sprintf(oapiDebugString(), "AOA Mode: %d", pitch_mode);
+        sprintf(oapiDebugString(), "Pitch Mode: %d", pitch_mode);
         // sprintf(oapiDebugString(), "Yaw Rate: %+0.3f", yaw_rate_curr * 57.296);
+        // sprintf(oapiDebugString(), "Elev Error: %+0.3f", elev_error);
+        // sprintf(oapiDebugString(), "Pitch Cmd: %+0.3f", pitch_cmd);
 		break;
 	}
 
