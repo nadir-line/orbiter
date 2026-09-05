@@ -1911,7 +1911,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                         pitch_rate_tgt = 1.0 * pitch_error; // Target rate proportional to error
 
                         // Pitch trim: elevons and body flap
-                        elev_tgt = pitch_rate_error * 0.5 + elev_trim_tgt;
+                        elev_tgt = pitch_rate_error * 5.0 + elev_trim_tgt;
                         elev_tgt = clamp(elev_tgt, -1.0, +1.0);
                         elev_trim_tgt = pitch_error * 3.0 - spdb_proc * 0.2 + gear_proc * 0.1;
                         elev_trim_tgt = clamp(elev_trim_tgt, -0.5, 0.5); // Allow half negative/positive trim for low AOA
