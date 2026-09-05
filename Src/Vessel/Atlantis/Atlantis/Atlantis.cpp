@@ -1842,8 +1842,21 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                     // Disable automated commands
                     SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
                     SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
+
                     elev_tgt = 0.0;
-                    SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
+
+                    if (GetMachNumber() > 5.0) {
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
+                        SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with body flap
+                    }
+                    else {
+                        elev_tgt += elev_trim_tgt; // Add trim to elevon deflection at low AOA
+                        elev_tgt = clamp(elev_tgt, -1.0, +1.0);
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt); // Use elevons for pitch trim at low AOA
+                        SetControlSurfaceLevel(AIRCTRL_FLAP, 0.0); // body flap zeroed at low AOA
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with actual trim deflection
+                    }
                 }
                 if (pitch_mode == 1) { // pitch rate null mode
                     pitch_rate_tgt = 0.0;
@@ -1864,9 +1877,19 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                         elev_trim_tgt = -spdb_proc * 0.25 + gear_proc * 0.1;
                         elev_trim_tgt = clamp(elev_trim_tgt, -0.5, 0.5); // Allow half negative/positive trim for low AOA
                     }
-                    SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
-                    SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
-                    SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with body flap
+
+                    if (GetMachNumber() > 5.0) {
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt);
+                        SetControlSurfaceLevel(AIRCTRL_FLAP, elev_trim_tgt);
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with body flap
+                    }
+                    else {
+                        elev_tgt += elev_trim_tgt; // Add trim to elevon deflection at low AOA
+                        elev_tgt = clamp(elev_tgt, -1.0, +1.0);
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATOR, elev_tgt); // Use elevons for pitch trim at low AOA
+                        SetControlSurfaceLevel(AIRCTRL_FLAP, 0.0); // body flap zeroed at low AOA
+                        SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, elev_trim_tgt); // Sync trim UI with actual trim deflection
+                    }
                 }
                 if (pitch_mode == 2) { // pitch/AOA hold mode
                     pitch_tgt = clamp(pitch_tgt, -40 * RAD, +40 * RAD);   // Limit pitch to ±40°
@@ -2017,7 +2040,8 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 }
             }
         }
-        else { // Mach < 0.1, disable RCS
+        else { // Mach < 0.1 or alt < 100 m
+            // Disable RCS
             EnableRCS(RCS_NONE);
             SetThrusterGroupLevel(THGROUP_ATT_PITCHUP, 0.0);
             SetThrusterGroupLevel(THGROUP_ATT_PITCHDOWN, 0.0);
@@ -2025,9 +2049,10 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
             SetThrusterGroupLevel(THGROUP_ATT_YAWRIGHT, 0.0);
             SetThrusterGroupLevel(THGROUP_ATT_BANKRIGHT, 0.0);
             SetThrusterGroupLevel(THGROUP_ATT_BANKLEFT, 0.0);
-            // Neutral control surfaces (except elevator trim)
+            // Neutral control surfaces
             SetControlSurfaceLevel(AIRCTRL_FLAP, 0.0);
-            SetControlSurfaceLevel(AIRCTRL_ELEVATOR, GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM));
+            SetControlSurfaceLevel(AIRCTRL_ELEVATOR, 0.0);
+            SetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM, 0.0);
             SetControlSurfaceLevel(AIRCTRL_AILERON, 0.0);
 
             // Disable DAP entry mode when Mach < 0.1
