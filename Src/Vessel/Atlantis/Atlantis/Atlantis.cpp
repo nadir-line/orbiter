@@ -2611,6 +2611,10 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
 	// draw the default HUD
 	VESSEL4::clbkDrawHUD (mode, hps, skp);
 	int cx = hps->CX, cy = hps->CY;
+	const int cssX = cx - (int)(0.20 * hps->W);
+	const int indicatorX = cx + (int)(0.20 * hps->W);
+	const int indicatorX1 = indicatorX + 40;
+	const int indicatorY = cy + (int)(0.30 * hps->H);
 
 	// show OMS thrust marker
 	if (status >= 3) {
@@ -2635,16 +2639,14 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
     // show DAP/CSS status when reentry DAP mode is active
 	if (status >= 4 && dap_entry_enabled) {
 		skp->SetTextAlign (oapi::Sketchpad::CENTER, oapi::Sketchpad::BASELINE);
-		skp->Text (cx-120, cy+150, "CSS", 3);
+		skp->Text (cssX, indicatorY, "CSS", 3);
 	}
 
 	// show speedbrake position indicator in the lower-right HUD area
 	{
-		const bool bVC = (oapiCockpitMode() == COCKPIT_VIRTUAL);
-		const int span = bVC ? 40 : 100;
-		const int x0 = bVC ? (cx + (int)(0.20 * hps->W)) : (hps->W - 118);
-		const int x1 = x0 + span;
-		const int y  = bVC ? (cy + (int)(0.30 * hps->H)) : (hps->H - 26);
+		const int x0 = indicatorX;
+		const int x1 = indicatorX1;
+		const int y  = indicatorY;
 		const double cur = clamp (spdb_proc, 0.0, 1.0);
 		const double cmd = clamp (spdb_proc, 0.0, 1.0);
 		const int xcur = x0 + (int)((x1 - x0) * cur);
