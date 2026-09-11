@@ -490,11 +490,11 @@ void Atlantis::CreateAirfoils ()
 	CreateAirfoil (LIFT_VERTICAL,   _V(0,0,-0.2), VLiftCoeff, 20, 270, 2.266);
 	CreateAirfoil (LIFT_HORIZONTAL, _V(0,0,-4), HLiftCoeff, 20,  50, 1.5);
 
-	CreateControlSurface (AIRCTRL_ELEVATOR, 8.0, 1.5, _V( 0, 0,  -15), AIRCTRL_AXIS_XPOS, anim_elev);
-	CreateControlSurface (AIRCTRL_RUDDER,   3.0, 1.5, _V( 0, 3,  -16), AIRCTRL_AXIS_YPOS, anim_rudder);
-	CreateControlSurface (AIRCTRL_AILERON,  4.0, 1.5, _V( 7,-0.5,-15), AIRCTRL_AXIS_XPOS, anim_raileron);
-	CreateControlSurface (AIRCTRL_AILERON,  4.0, 1.5, _V(-7,-0.5,-15), AIRCTRL_AXIS_XNEG, anim_laileron);
-	CreateControlSurface (AIRCTRL_FLAP,    16.0, 1.5, _V( 0, 0,  -18), AIRCTRL_AXIS_XPOS, anim_flap);
+	CreateControlSurface (AIRCTRL_ELEVATOR, 8.0, 0.7, _V( 0, 0,  -15), AIRCTRL_AXIS_XPOS, anim_elev);
+	CreateControlSurface (AIRCTRL_RUDDER,   4.0, 0.7, _V( 0, 3,  -16), AIRCTRL_AXIS_YPOS, anim_rudder);
+	CreateControlSurface (AIRCTRL_AILERON,  4.0, 0.7, _V( 7,-0.5,-15), AIRCTRL_AXIS_XPOS, anim_raileron);
+	CreateControlSurface (AIRCTRL_AILERON,  4.0, 0.7, _V(-7,-0.5,-15), AIRCTRL_AXIS_XNEG, anim_laileron);
+	CreateControlSurface (AIRCTRL_FLAP,    16.0, 0.7, _V( 0, 0,  -18), AIRCTRL_AXIS_XPOS, anim_flap);
 
 	CreateVariableDragElement (&spdb_proc, 5, _V(0, 7.5, -14)); // speedbrake drag
 	CreateVariableDragElement (&gear_proc, 2, _V(0,-3,0));      // landing gear drag
@@ -2611,13 +2611,13 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
 	// draw the default HUD
 	VESSEL4::clbkDrawHUD (mode, hps, skp);
 	int cx = hps->CX, cy = hps->CY;
-	const int cssX = cx - (int)(0.20 * hps->W);
-	const int indicatorX = cx + (int)(0.20 * hps->W);
-	const int indicatorX1 = indicatorX + 40;
-	const int indicatorY = cy + (int)(0.30 * hps->H);
+	const int indicatorX = cx - 20;
+	const int indicatorX1 = cx + 20;
+	const int indicatorY = cy + (int)(0.45 * hps->H);
+	const int cssY = indicatorY + 20;
 
 	// show OMS thrust marker
-	if (status >= 3) {
+	if (status == 3) {
 		int omsy = cy + (int)(15.0*hps->Scale);
 		int dx = (int)(1.0*hps->Scale);
 		skp->Line (cx-2*dx, omsy, cx+2*dx, omsy);
@@ -2625,7 +2625,7 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
 	}
 
 	// show RCS mode
-	if (status >= 3 && oapiCockpitMode() == COCKPIT_VIRTUAL) {
+	if (status == 3 && oapiCockpitMode() == COCKPIT_VIRTUAL) {
 		switch (GetAttitudeMode()) {
 		case RCS_ROT:
 			skp->Text (0, hps->H-13, "RCS ROT", 7);
@@ -2637,13 +2637,13 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
 	}
 
     // show DAP/CSS status when reentry DAP mode is active
-	if (status >= 4 && dap_entry_enabled) {
+	if (status >= 4) {
 		skp->SetTextAlign (oapi::Sketchpad::CENTER, oapi::Sketchpad::BASELINE);
-		skp->Text (cssX, indicatorY, "CSS", 3);
+		skp->Text (cx, cssY, "CSS", 3);
 	}
 
 	// show speedbrake position indicator in the lower-right HUD area
-	{
+	if (status >= 4) {
 		const int x0 = indicatorX;
 		const int x1 = indicatorX1;
 		const int y  = indicatorY;
