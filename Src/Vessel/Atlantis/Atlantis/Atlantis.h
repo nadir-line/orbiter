@@ -493,6 +493,9 @@ private:
     double aileron_curr;
     double aileron_tgt;
     double aileron_error;
+    double spdbrk_curr;
+    double spdbrk_tgt;
+    double spdbrk_error;
 
     // Miscellaneous
 	bool reset_sat;

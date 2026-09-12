@@ -226,6 +226,7 @@ Atlantis::Atlantis (OBJHANDLE hObj, int fmodel)
 	ldoor_drag      = rdoor_drag = 0.0;
 	spdb_status     = AnimState::CLOSED;
 	spdb_proc       = 0.0;
+	spdbrk_tgt      = 0.0;
 
 	rmsDlg = std::make_unique<RMSDialog>(this);
 	ctlDlg = std::make_unique<AtlantisDialog>(this);
@@ -1376,6 +1377,7 @@ void Atlantis::RevertLandingGear ()
 
 void Atlantis::OperateSpeedbrake (AnimState::Action action)
 {
+	spdbrk_tgt = (action == AnimState::OPENING || action == AnimState::OPEN) ? 1.0 : 0.0;
 	spdb_status = action;
 	RecordEvent ("SPEEDBRAKE", action == AnimState::CLOSING ? "CLOSE" : "OPEN");
 }
@@ -1472,6 +1474,7 @@ void Atlantis::clbkLoadStateEx (FILEHANDLE scn, void *vs)
 	double sts_sat_z = 0.0;
 	dap_entry_enabled = true;
 	spdb_status = AnimState::CLOSED; spdb_proc = 0.0;
+	spdbrk_tgt = 0.0;
 
 	while (oapiReadScenario_nextline (scn, line)) {
         if (!_strnicmp (line, "CONFIGURATION", 13)) {
@@ -1484,6 +1487,7 @@ void Atlantis::clbkLoadStateEx (FILEHANDLE scn, void *vs)
 		} else if (!_strnicmp (line, "SPEEDBRAKE", 10)) {
 			sscanf (line+10, "%d%lf", &action, &spdb_proc);
 			spdb_status = (AnimState::Action)(action+1);
+			spdbrk_tgt = (spdb_status == AnimState::OPENING || spdb_status == AnimState::OPEN) ? 1.0 : 0.0;
 		} else if (!_strnicmp (line, "SRB_IGNITION_TIME", 17)) {
 			sscanf (line+17, "%lf", &srbtime);
 		} else if (!_strnicmp (line, "SAT_OFS_X", 9)) {
@@ -1813,6 +1817,7 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
 			SetADCtrlMode(7);
             aoa_curr = GetAOA();
             aoa_tgt = aoa_curr;
+            spdbrk_tgt = 0.0;
 			status = 4;
 		}
 		break;
@@ -1834,6 +1839,9 @@ void Atlantis::clbkPreStep (double simt, double simdt, double mjd)
                 elev_error = elev_tgt - elev_curr;
                 elev_trim_curr = GetControlSurfaceLevel(AIRCTRL_ELEVATORTRIM);
                 elev_trim_error = elev_trim_tgt - elev_trim_curr;
+
+                spdbrk_curr = spdb_proc;
+				spdbrk_error = spdbrk_tgt - spdbrk_curr;
 
                 // PITCH MODE SHIFTING: 0 = manual, 1 = pitch rate null, 2 = pitch hold
                 if (abs(pitch_cmd) > cmd_null_zone || abs(elev_error) > cmd_null_zone) {
@@ -2648,7 +2656,7 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
 		const int x1 = indicatorX1;
 		const int y  = indicatorY;
 		const double cur = clamp (spdb_proc, 0.0, 1.0);
-		const double cmd = clamp (spdb_proc, 0.0, 1.0);
+		const double cmd = clamp (spdbrk_tgt, 0.0, 1.0);
 		const int xcur = x0 + (int)((x1 - x0) * cur);
 		const int xcmd = x0 + (int)((x1 - x0) * cmd);
 
