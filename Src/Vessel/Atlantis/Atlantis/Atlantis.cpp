@@ -490,7 +490,7 @@ void Atlantis::CreateAirfoils ()
 	CreateAirfoil (LIFT_VERTICAL,   _V(0,0,-0.2), VLiftCoeff, 20, 270, 2.266);
 	CreateAirfoil (LIFT_HORIZONTAL, _V(0,0,-4), HLiftCoeff, 20,  50, 1.5);
 
-	CreateControlSurface (AIRCTRL_ELEVATOR, 8.0, 0.7, _V( 0, 0,  -15), AIRCTRL_AXIS_XPOS, anim_elev);
+	CreateControlSurface (AIRCTRL_ELEVATOR, 8.0, 1.0, _V( 0, 0,  -15), AIRCTRL_AXIS_XPOS, anim_elev);
 	CreateControlSurface (AIRCTRL_RUDDER,   4.0, 0.7, _V( 0, 3,  -16), AIRCTRL_AXIS_YPOS, anim_rudder);
 	CreateControlSurface (AIRCTRL_AILERON,  4.0, 0.7, _V( 7,-0.5,-15), AIRCTRL_AXIS_XPOS, anim_raileron);
 	CreateControlSurface (AIRCTRL_AILERON,  4.0, 0.7, _V(-7,-0.5,-15), AIRCTRL_AXIS_XNEG, anim_laileron);
