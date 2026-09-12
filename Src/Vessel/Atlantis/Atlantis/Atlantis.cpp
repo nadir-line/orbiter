@@ -2613,7 +2613,7 @@ bool Atlantis::clbkDrawHUD (int mode, const HUDPAINTSPEC *hps, oapi::Sketchpad *
 	int cx = hps->CX, cy = hps->CY;
 	const int indicatorX = cx - 20;
 	const int indicatorX1 = cx + 20;
-	const int indicatorY = cy + (int)(0.45 * hps->H);
+	const int indicatorY = cy + (int)(0.40 * hps->H);
 	const int cssY = indicatorY + 20;
 
 	// show OMS thrust marker
